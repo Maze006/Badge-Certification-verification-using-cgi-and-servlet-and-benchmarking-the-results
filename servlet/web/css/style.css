@@ -1,0 +1,582 @@
+/* =====================================================================
+   Verified Digital Skill-Badge Portal -- stylesheet
+
+   Two colours only: cream #FFFDF2 and black #000000, plus tints of
+   those two for hierarchy. No third hue anywhere -- badge tiers are
+   distinguished by letter and border weight rather than by colour.
+
+   Three typefaces, each with a job:
+     serif      headings -- the certificate/document voice
+     sans       body and UI
+     monospace  verification codes, timestamps, response times,
+                endpoint paths, JSON
+
+   Flat by design: no gradients, no drop shadows.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap');
+
+:root {
+  /* The palette. Everything below is one of these two, or a tint. */
+  --cream:      #FFFDF2;   /* page ground and card surfaces */
+  --cream-sunk: #F5F2E6;   /* code blocks, table heads, bar tracks */
+  --black:      #000000;   /* text, borders, bar fills, buttons */
+  --ink-soft:   #4A4A4A;   /* secondary text */
+  --ink-muted:  #6E6E6E;   /* tertiary text, inactive nav */
+  --hairline:   rgba(0, 0, 0, 0.14);
+  --hairline-2: rgba(0, 0, 0, 0.08);
+
+  --radius:   8px;
+  --border:   1px solid var(--black);
+
+  --serif: "Source Serif 4", Lora, Georgia, "Times New Roman", serif;
+  --sans:  Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --mono:  "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+/* A deliberate single look. The palette is the paper a certificate is
+   printed on, so it does not invert with the viewer theme. */
+html { color-scheme: light; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--black);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 24px 72px; }
+
+/* --- site header ---------------------------------------------------- */
+.site-header {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 24px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.seal {
+  width: 40px; height: 40px; flex: 0 0 40px;
+  border: 2px solid var(--black);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.site-header h1,
+.site-header .brand {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--black);
+  text-decoration: none;
+  display: block;
+}
+
+.site-header .tagline {
+  margin: 1px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+/* --- nav ------------------------------------------------------------ */
+.nav-tabs {
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 34px;
+}
+
+.nav-tabs ul {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  gap: 26px;
+  list-style: none;
+}
+
+.nav-tabs a {
+  display: block;
+  padding: 9px 0 10px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.nav-tabs a:hover { color: var(--black); }
+
+.nav-tabs a.is-active {
+  color: var(--black);
+  font-weight: 500;
+  border-bottom-color: var(--black);
+}
+
+/* --- page heading --------------------------------------------------- */
+.page-head { margin-bottom: 30px; }
+
+.page-head h1 {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  margin: 0 0 7px;
+}
+
+.sub { color: var(--ink-soft); margin: 0; max-width: 62ch; }
+
+.eyebrow { margin: 0 0 12px; font-size: 13px; }
+.eyebrow a { color: var(--ink-muted); text-decoration: none; }
+.eyebrow a:hover { color: var(--black); text-decoration: underline; }
+
+h2.section {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  margin: 38px 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.count {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--ink-soft);
+}
+
+/* --- cards ---------------------------------------------------------- */
+.card {
+  background: var(--cream);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  overflow-x: auto;
+}
+
+.card.empty {
+  color: var(--ink-soft);
+  text-align: center;
+  padding: 34px 24px;
+}
+
+.card.empty h2 {
+  font-family: var(--serif);
+  font-weight: 600;
+  margin-top: 0;
+  color: var(--black);
+}
+
+/* --- badge cards ---------------------------------------------------- */
+.badges { display: grid; gap: 14px; }
+
+.badge {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  background: var(--cream);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+
+.badge.revoked { opacity: 0.5; }
+.badge-body { flex: 1; min-width: 0; }
+
+/* The verification code sits on the right, monospace, with the mark that
+   says the portal stands behind it. */
+.badge-aside {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+  padding-left: 8px;
+}
+
+.badge-aside .code-row { justify-content: flex-end; }
+
+.badge h3 {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 3px;
+  letter-spacing: -0.01em;
+}
+
+.unit { margin: 0 0 9px; color: var(--ink-muted); font-size: 13px; }
+
+.meta {
+  margin: 0 0 13px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+}
+
+/* Tier is carried by the letter and the weight of the ring, never by
+   colour: filled = gold, double rule = silver, hairline = bronze. */
+.medal {
+  width: 44px; height: 44px; flex: 0 0 44px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--black);
+  background: transparent;
+  border: 1px solid var(--black);
+}
+
+.tier-gold   .medal { background: var(--black); color: var(--cream); border-width: 2px; }
+.tier-silver .medal { border-width: 2px; }
+.tier-bronze .medal { border-width: 1px; }
+
+.pill {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 1px 8px;
+  border: 1px solid var(--black);
+  border-radius: 999px;
+  margin-right: 4px;
+}
+
+.tier-gold .pill { background: var(--black); color: var(--cream); }
+
+.code-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+
+code, .mono {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+code {
+  background: var(--cream-sunk);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 4px 9px;
+}
+
+.verified-mark {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--black);
+  margin-left: 2px;
+}
+
+.warn {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  margin: 11px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* --- buttons and inputs --------------------------------------------- */
+.btn {
+  display: inline-block;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--black);
+  color: var(--cream);
+  border: 1px solid var(--black);
+  border-radius: var(--radius);
+  padding: 9px 18px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn:hover { background: #1a1a1a; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.small { padding: 4px 12px; font-size: 12.5px; }
+
+.btn.ghost {
+  background: transparent;
+  color: var(--black);
+  border-color: var(--black);
+}
+
+.btn.ghost:hover { background: var(--cream-sunk); }
+
+input[type="text"], select {
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 14px;
+  width: 100%;
+  padding: 11px 14px;
+  color: var(--black);
+  background: var(--cream);
+  border: var(--border);
+  border-radius: var(--radius);
+}
+
+input[type="text"]::placeholder { color: var(--ink-muted); }
+
+:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 2px;
+}
+
+label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-soft);
+  margin-bottom: 7px;
+}
+
+/* --- implementation switch ------------------------------------------ */
+.impl-switch { display: flex; gap: 10px; }
+
+.impl-switch button {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 12px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  background: transparent;
+  border: var(--border);
+  border-radius: var(--radius);
+}
+
+.impl-switch button:hover { background: var(--cream-sunk); }
+
+.impl-switch button[aria-pressed="true"] {
+  background: var(--black);
+  color: var(--cream);
+  font-weight: 500;
+}
+
+/* --- tables --------------------------------------------------------- */
+table.grid { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+table.grid th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--black);
+  padding: 0 14px 10px 0;
+}
+
+table.grid td {
+  padding: 13px 14px 13px 0;
+  border-bottom: 1px solid var(--hairline-2);
+  vertical-align: middle;
+}
+
+table.grid tr:last-child td { border-bottom: none; }
+
+table.grid td code { font-size: 12.5px; }
+
+.unit-inline {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 12px;
+  margin-top: 1px;
+}
+
+/* --- verification result -------------------------------------------- */
+.result { margin-top: 24px; }
+
+.verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 5px;
+}
+
+.verdict-sub { margin: 0 0 18px; color: var(--ink-soft); font-size: 14px; }
+
+.result.invalid .verdict-sub { color: var(--black); }
+
+dl.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 24px;
+  margin: 0;
+  font-size: 14px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 16px;
+}
+
+dl.facts dt {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-soft);
+  padding-top: 2px;
+}
+
+dl.facts dd { margin: 0; }
+dl.facts dd.mono { font-size: 13px; }
+
+.served {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* --- home tiles ----------------------------------------------------- */
+.tiles {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.tile {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--cream);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+
+.tile:hover { background: var(--cream-sunk); }
+
+.tile h3 {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 5px;
+}
+
+.tile p { margin: 0; color: var(--ink-soft); font-size: 13.5px; }
+
+/* --- benchmark bars ------------------------------------------------- */
+.bench { display: grid; gap: 16px; }
+
+.bench-row {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: 16px;
+}
+
+.bench-label { font-size: 13.5px; font-weight: 500; }
+
+.bench-label span {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--ink-muted);
+}
+
+.bench-track {
+  height: 16px;
+  background: var(--cream-sunk);
+  border: 1px solid var(--black);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bench-fill {
+  height: 100%;
+  background: var(--black);
+  min-width: 3px;
+}
+
+.bench-value {
+  font-family: var(--mono);
+  font-size: 13px;
+  text-align: right;
+}
+
+.bench-note {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+/* --- code block ----------------------------------------------------- */
+.code-block {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.75;
+  white-space: pre;
+  overflow-x: auto;
+  background: var(--cream-sunk);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin: 0;
+  color: var(--black);
+}
+
+.code-caption {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* --- footer --------------------------------------------------------- */
+.site-foot {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 22px 24px 44px;
+  border-top: 1px solid var(--hairline);
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.site-foot strong { font-weight: 500; color: var(--ink-soft); }
+
+/* --- narrow screens ------------------------------------------------- */
+@media (max-width: 620px) {
+  .badge { flex-direction: column; }
+  .badge-aside { align-items: flex-start; padding-left: 0; }
+  .badge-aside .code-row { justify-content: flex-start; }
+  .bench-row { grid-template-columns: 1fr; gap: 6px; }
+  .bench-value { text-align: left; }
+  dl.facts { grid-template-columns: 1fr; gap: 2px 0; }
+  dl.facts dd { margin-bottom: 12px; }
+  .nav-tabs ul { gap: 18px; }
+}

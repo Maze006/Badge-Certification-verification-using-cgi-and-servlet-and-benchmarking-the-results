@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 660" width="980" height="660"
+     font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif"
+     role="img" aria-labelledby="t d">
+  <title id="t">badgeportal database schema</title>
+  <desc id="d">Four tables. students and modules each have many module_completions
+  and many badges. A badge is issued only for an existing module completion.
+  badges.verification_code is uniquely indexed and is the column both the servlet
+  and the CGI verification endpoints look up.</desc>
+
+  <style>
+    .bg     { fill: #FFFDF2; }
+    .box    { fill: #FFFDF2; stroke: #000000; stroke-width: 1.5; }
+    .head   { fill: #F5F2E6; stroke: #000000; stroke-width: 1.5; }
+    .tname  { font-family: 'Source Serif 4', Lora, Georgia, serif; font-size: 15px;
+              font-weight: 600; fill: #000000; }
+    .cnt    { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 10.5px;
+              fill: #6E6E6E; }
+    .col    { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11.5px;
+              fill: #000000; }
+    .type   { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 10.5px;
+              fill: #6E6E6E; }
+    .key    { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 9px;
+              font-weight: 500; fill: #000000; }
+    .rule   { stroke: rgba(0,0,0,0.14); stroke-width: 1; }
+    .rel    { stroke: #000000; stroke-width: 1.5; fill: none; }
+    .relDash{ stroke: #000000; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+    .card   { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11px;
+              fill: #000000; }
+    .note   { font-size: 11.5px; fill: #4A4A4A; }
+    .noteEm { font-size: 11.5px; fill: #000000; font-weight: 600; }
+    .legend { font-size: 11px; fill: #4A4A4A; }
+  </style>
+
+  <rect class="bg" x="0" y="0" width="980" height="660"/>
+
+  <!-- ============ students ============ -->
+  <g>
+    <rect class="box" x="24" y="168" width="252" height="140" rx="8"/>
+    <path class="head" d="M24 176a8 8 0 0 1 8-8h236a8 8 0 0 1 8 8v22H24z"/>
+    <text class="tname" x="38" y="191">students</text>
+    <text class="cnt" x="262" y="191" text-anchor="end">60 rows</text>
+
+    <line class="rule" x1="24" y1="198" x2="276" y2="198"/>
+    <text class="col"  x="38" y="219">student_id</text>
+    <text class="key"  x="262" y="219" text-anchor="end">PK</text>
+    <text class="col"  x="38" y="241">name</text>
+    <text class="type" x="262" y="241" text-anchor="end">varchar(100)</text>
+    <text class="col"  x="38" y="263">email</text>
+    <text class="key"  x="262" y="263" text-anchor="end">UQ</text>
+    <text class="col"  x="38" y="285">enrolled_on</text>
+    <text class="type" x="262" y="285" text-anchor="end">date</text>
+  </g>
+
+  <!-- ============ modules ============ -->
+  <g>
+    <rect class="box" x="704" y="168" width="252" height="140" rx="8"/>
+    <path class="head" d="M704 176a8 8 0 0 1 8-8h236a8 8 0 0 1 8 8v22H704z"/>
+    <text class="tname" x="718" y="191">modules</text>
+    <text class="cnt" x="942" y="191" text-anchor="end">6 rows</text>
+
+    <line class="rule" x1="704" y1="198" x2="956" y2="198"/>
+    <text class="col"  x="718" y="219">module_id</text>
+    <text class="key"  x="942" y="219" text-anchor="end">PK</text>
+    <text class="col"  x="718" y="241">title</text>
+    <text class="key"  x="942" y="241" text-anchor="end">UQ</text>
+    <text class="col"  x="718" y="263">unit</text>
+    <text class="type" x="942" y="263" text-anchor="end">varchar(60)</text>
+    <text class="col"  x="718" y="285">code_prefix</text>
+    <text class="type" x="942" y="285" text-anchor="end">char(2)</text>
+  </g>
+
+  <!-- ============ module_completions ============ -->
+  <g>
+    <rect class="box" x="358" y="30" width="264" height="162" rx="8"/>
+    <path class="head" d="M358 38a8 8 0 0 1 8-8h248a8 8 0 0 1 8 8v22H358z"/>
+    <text class="tname" x="372" y="53">module_completions</text>
+
+    <line class="rule" x1="358" y1="60" x2="622" y2="60"/>
+    <text class="col"  x="372" y="81">completion_id</text>
+    <text class="key"  x="608" y="81" text-anchor="end">PK</text>
+    <text class="col"  x="372" y="103">student_id</text>
+    <text class="key"  x="608" y="103" text-anchor="end">FK</text>
+    <text class="col"  x="372" y="125">module_id</text>
+    <text class="key"  x="608" y="125" text-anchor="end">FK</text>
+    <text class="col"  x="372" y="147">score</text>
+    <text class="type" x="608" y="147" text-anchor="end">decimal(5,2)</text>
+    <text class="col"  x="372" y="169">completed_at</text>
+    <text class="type" x="608" y="169" text-anchor="end">datetime(3)</text>
+    <text class="cnt"  x="372" y="186">336 rows &#183; unique (student_id, module_id)</text>
+  </g>
+
+  <!-- ============ badges ============ -->
+  <g>
+    <rect class="box" x="358" y="352" width="264" height="272" rx="8"/>
+    <path class="head" d="M358 360a8 8 0 0 1 8-8h248a8 8 0 0 1 8 8v22H358z"/>
+    <text class="tname" x="372" y="375">badges</text>
+
+    <line class="rule" x1="358" y1="382" x2="622" y2="382"/>
+    <text class="col"  x="372" y="403">badge_id</text>
+    <text class="key"  x="608" y="403" text-anchor="end">PK</text>
+    <text class="col"  x="372" y="425">student_id</text>
+    <text class="key"  x="608" y="425" text-anchor="end">FK</text>
+    <text class="col"  x="372" y="447">module_id</text>
+    <text class="key"  x="608" y="447" text-anchor="end">FK</text>
+    <text class="col"  x="372" y="469">verification_code</text>
+    <text class="key"  x="608" y="469" text-anchor="end">UQ</text>
+    <text class="col"  x="372" y="491">tier</text>
+    <text class="type" x="608" y="491" text-anchor="end">enum</text>
+    <text class="col"  x="372" y="513">score</text>
+    <text class="type" x="608" y="513" text-anchor="end">decimal(5,2)</text>
+    <text class="col"  x="372" y="535">issued_at_ms</text>
+    <text class="type" x="608" y="535" text-anchor="end">bigint</text>
+    <text class="col"  x="372" y="557">issued_at</text>
+    <text class="type" x="608" y="557" text-anchor="end">datetime(3)</text>
+    <text class="col"  x="372" y="579">revoked</text>
+    <text class="type" x="608" y="579" text-anchor="end">tinyint(1)</text>
+    <text class="cnt"  x="372" y="600">336 rows &#183; unique (student_id, module_id)</text>
+    <text class="cnt"  x="372" y="615">unique (verification_code) &#8592; the lookup index</text>
+  </g>
+
+  <!-- ============ relationships ============ -->
+  <!-- students 1..N module_completions -->
+  <path class="rel" d="M276 200 L316 200 L316 104 L358 104"/>
+  <text class="card" x="286" y="194">1</text>
+  <text class="card" x="341" y="98">N</text>
+
+  <!-- modules 1..N module_completions -->
+  <path class="rel" d="M704 200 L664 200 L664 126 L622 126"/>
+  <text class="card" x="682" y="194">1</text>
+  <text class="card" x="630" y="120">N</text>
+
+  <!-- students 1..N badges -->
+  <path class="rel" d="M276 276 L316 276 L316 426 L358 426"/>
+  <text class="card" x="286" y="292">1</text>
+  <text class="card" x="341" y="420">N</text>
+
+  <!-- modules 1..N badges -->
+  <path class="rel" d="M704 276 L664 276 L664 448 L622 448"/>
+  <text class="card" x="682" y="292">1</text>
+  <text class="card" x="630" y="442">N</text>
+
+  <!-- completion gates issuance -->
+  <path class="relDash" d="M490 192 L490 352"/>
+  <text class="note"   x="502" y="262">a badge is issued only where a</text>
+  <text class="note"   x="502" y="278">matching completion exists</text>
+  <text class="noteEm" x="502" y="296">enforced by IssueServlet</text>
+
+  <!-- ============ legend ============ -->
+  <g transform="translate(24, 596)">
+    <text class="legend" x="0" y="0">PK primary key &#160;&#160; FK foreign key &#160;&#160; UQ unique index</text>
+    <text class="legend" x="0" y="18">1&#8212;N one row on the left, many on the right</text>
+    <text class="legend" x="0" y="36">All foreign keys cascade on delete.</text>
+  </g>
+
+</svg>

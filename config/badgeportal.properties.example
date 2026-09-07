@@ -1,0 +1,48 @@
+# =====================================================================
+#  Verified Digital Skill-Badge Portal -- configuration TEMPLATE
+#
+#  Copy this file to badgeportal.properties and fill in your own values:
+#
+#      copy config\badgeportal.properties.example config\badgeportal.properties
+#
+#  The real file is gitignored, because it carries the badge signing
+#  secret. This template is committed so a fresh clone knows what to
+#  create.
+#
+#  ONE file, read by BOTH implementations:
+#    * the Java Servlet  (via com.badgeportal.Config)
+#    * the Python CGI    (via cgi/dbconfig.py)
+#
+#  Keeping a single source of truth matters for the benchmark: both
+#  sides must hit the same database, as the same user, with the same
+#  secret, or the comparison would not be apples to apples.
+# =====================================================================
+
+# --- Database -------------------------------------------------------
+# badgeuser is created for you by sql/01_schema.sql. If you change the
+# password here, change it in that file too, or the login will fail.
+db.host=localhost
+db.port=3306
+db.name=badgeportal
+db.user=badgeuser
+db.password=CHANGE_ME
+
+# --- Servlet-side connection pool -----------------------------------
+# The number of live JDBC connections the servlet container holds open
+# across requests. The CGI script cannot use this: a fresh process has
+# no pool to inherit, so it must open (and tear down) its own
+# connection on every single request. That difference is a large part
+# of what the benchmark measures.
+db.pool.size=16
+
+# --- Verification-code signing secret --------------------------------
+# Fed into SHA-256 along with the student id, module id and issue
+# timestamp. A badge row whose stored code does not match the digest
+# recomputed from its own columns has been tampered with.
+#
+# THIS IS THE VALUE THAT ACTUALLY MATTERS. Anyone holding it can forge
+# a verification code that passes the tamper-evident check. Use a long
+# random string, never commit the real one, and note that changing it
+# invalidates every badge already issued -- the codes in the database
+# were derived from the old value and will no longer recompute.
+badge.secret=CHANGE_ME_TO_A_LONG_RANDOM_STRING

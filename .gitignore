@@ -1,0 +1,121 @@
+# =====================================================================
+#  Verified Digital Skill-Badge Portal -- .gitignore
+#
+#  What is deliberately KEPT, so nobody removes it later by mistake:
+#    sql/            schema and seed -- the project does not run without them
+#    lib/*.jar       the JDBC driver, so a fresh clone builds with no download
+#    bench/results.* and chart.png -- REPORT.md cites these directly
+#    docs/           the schema diagram and the explainer
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Secrets and local configuration
+#
+# badgeportal.properties holds the database password AND the badge
+# signing secret. The signing secret is the one that genuinely matters:
+# anyone holding it can forge a verification code that passes the
+# tamper-evident check. Copy the .example file and fill in your own.
+# ---------------------------------------------------------------------
+config/badgeportal.properties
+*.properties.local
+.env
+.env.*
+secrets.*
+credentials.*
+
+# Keep the template that tells people what to create.
+!config/badgeportal.properties.example
+
+# ---------------------------------------------------------------------
+# Personal working material -- notes, drafts, exports, marked-up copies.
+# Not part of the deliverable, and it duplicates README/REPORT/schema,
+# so committing it guarantees two versions that drift apart.
+# ---------------------------------------------------------------------
+project resources/
+project-resources/
+notes/
+drafts/
+scratch/
+
+# ---------------------------------------------------------------------
+# Build output -- regenerate with scripts\build.bat
+# ---------------------------------------------------------------------
+build/
+out/
+target/
+*.class
+*.war
+*.jar
+!lib/mysql-connector-j-8.4.0.jar
+
+# ---------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+pylib/
+
+# ---------------------------------------------------------------------
+# Benchmark output
+#
+# results.csv, results.md and chart.png ARE committed -- REPORT.md
+# quotes them. The raw per-request samples are large, machine-specific
+# and fully reproducible from a re-run, so they are not.
+# ---------------------------------------------------------------------
+bench/raw_latencies.csv
+
+# ---------------------------------------------------------------------
+# Server logs and runtime files, in case anything is ever run in-tree
+# ---------------------------------------------------------------------
+*.log
+logs/
+work/
+temp/
+tomcat/
+catalina.*
+localhost_access_log.*
+*.pid
+
+# ---------------------------------------------------------------------
+# Databases and dumps -- a dump can carry real data and credentials.
+# Schema and seed live in sql/ and are committed; exports are not.
+# ---------------------------------------------------------------------
+*.sql.gz
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+dump.sql
+backup*.sql
+
+# ---------------------------------------------------------------------
+# Editors and IDEs
+# ---------------------------------------------------------------------
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.settings/
+.classpath
+.project
+nbproject/
+
+# ---------------------------------------------------------------------
+# OS and cloud-sync clutter. This project lives inside a OneDrive
+# folder, which litters directories with these.
+# ---------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.DS_Store
+$RECYCLE.BIN/
+*.lnk
+*.tmp
+*.bak
+~$*

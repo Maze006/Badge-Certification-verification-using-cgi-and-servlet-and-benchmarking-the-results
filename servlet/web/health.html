@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Servlet health</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="seal" aria-hidden="true">&#10003;</div>
+  <div>
+    <a class="brand" href="index.html">Verified skill-badge portal</a>
+    <p class="tagline">Micro-credentials issued with a tamper-evident verification code</p>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <ul>
+    <li><a href="index.html">home</a></li>
+    <li><a href="wallet">wallets</a></li>
+    <li><a href="verify.html">verify</a></li>
+    <li><a href="health.html" class="is-active" aria-current="page">health</a></li>
+  </ul>
+</nav>
+
+<main class="wrap">
+
+  <header class="page-head">
+    <h1>Servlet health</h1>
+    <p class="sub">
+      Live connection-pool statistics from the running servlet container.
+      Refresh a few times: <code>borrows</code> climbs with every request
+      served, while <code>poolSize</code> never moves and
+      <code>reconnects</code> stays at zero. That is the pool being reused
+      rather than rebuilt &mdash; the thing a CGI process cannot do.
+    </p>
+  </header>
+
+  <h2 class="section">Response <span class="count">GET /api/health</span></h2>
+  <div class="card">
+    <p class="code-caption" id="caption">requesting&hellip;</p>
+    <pre class="code-block" id="payload">Loading&hellip;</pre>
+    <p class="bench-note">
+      <button class="btn small ghost" type="button" id="refresh">Refresh</button>
+    </p>
+  </div>
+
+  <h2 class="section">What each field means</h2>
+  <div class="card">
+    <table class="grid">
+      <thead>
+        <tr><th>Field</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>status</code></td>
+            <td>UP once the connection pool has been opened by the startup listener.</td></tr>
+        <tr><td><code>poolSize</code></td>
+            <td>JDBC connections opened once, at application startup, and held open.</td></tr>
+        <tr><td><code>idleConnections</code></td>
+            <td>How many of those are currently back in the pool, not in use.</td></tr>
+        <tr><td><code>borrows</code></td>
+            <td>Total connections handed to a request thread since startup. This is
+                the number that proves reuse.</td></tr>
+        <tr><td><code>reconnects</code></td>
+            <td>Connections replaced after going stale. Should stay at zero.</td></tr>
+        <tr><td><code>configSource</code></td>
+            <td>Which configuration file the running application actually read.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer class="site-foot">
+  Served by the <strong>servlet</strong> implementation on Apache Tomcat
+</footer>
+
+<script>
+(function () {
+  var payload = document.getElementById("payload");
+  var caption = document.getElementById("caption");
+  var refresh = document.getElementById("refresh");
+
+  function load() {
+    var t0 = performance.now();
+    caption.textContent = "requesting...";
+    fetch("api/health", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var ms = performance.now() - t0;
+        payload.textContent = JSON.stringify(data, null, 2);
+        caption.textContent = "200 OK  ·  round trip " + ms.toFixed(1) + " ms";
+      })
+      .catch(function () {
+        payload.textContent = "Could not reach /api/health.\n\n"
+          + "Is Tomcat running? Start it with scripts\\start_tomcat.bat\n"
+          + "(the XAMPP control panel starts it on the wrong Java runtime).";
+        caption.textContent = "request failed";
+      });
+  }
+
+  refresh.addEventListener("click", load);
+  load();
+})();
+</script>
+</body>
+</html>

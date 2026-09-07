@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verify a badge</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="seal" aria-hidden="true">&#10003;</div>
+  <div>
+    <a class="brand" href="index.html">Verified skill-badge portal</a>
+    <p class="tagline">Micro-credentials issued with a tamper-evident verification code</p>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <ul>
+    <li><a href="index.html">home</a></li>
+    <li><a href="wallet">wallets</a></li>
+    <li><a href="verify.html" class="is-active" aria-current="page">verify</a></li>
+    <li><a href="health.html">health</a></li>
+  </ul>
+</nav>
+
+<main class="wrap">
+
+  <header class="page-head">
+    <h1>Verify a badge</h1>
+    <p class="sub">
+      Paste the verification code printed on a badge. No account needed
+      &mdash; this is the check an employer would run.
+    </p>
+  </header>
+
+  <div class="card">
+    <form id="verify-form" autocomplete="off">
+      <label for="code">Verification code</label>
+      <input type="text" id="code" name="code" placeholder="SF-3A9F-B21C-7E04"
+             spellcheck="false" required>
+
+      <div style="margin:22px 0 20px">
+        <label>Answer this lookup with</label>
+        <div class="impl-switch" role="group" aria-label="Implementation">
+          <button type="button" id="btn-servlet" aria-pressed="true">
+            Java servlet &middot; Tomcat :8080
+          </button>
+          <button type="button" id="btn-cgi" aria-pressed="false">
+            Python CGI &middot; Apache :80
+          </button>
+        </div>
+      </div>
+
+      <button class="btn" type="submit" id="submit">Verify badge</button>
+    </form>
+  </div>
+
+  <div id="result" class="result" hidden></div>
+
+</main>
+
+<footer class="site-foot">
+  The same lookup, answered by either implementation.
+  Watch the <strong>round-trip time</strong> change when you switch.
+</footer>
+
+<script>
+(function () {
+  var SERVLET = "api/verify";
+  var CGI     = "http://localhost/cgi-bin/verify.py";
+  var impl    = "servlet";
+
+  var form   = document.getElementById("verify-form");
+  var input  = document.getElementById("code");
+  var submit = document.getElementById("submit");
+  var out    = document.getElementById("result");
+  var bServlet = document.getElementById("btn-servlet");
+  var bCgi     = document.getElementById("btn-cgi");
+
+  function setImpl(which) {
+    impl = which;
+    bServlet.setAttribute("aria-pressed", String(which === "servlet"));
+    bCgi.setAttribute("aria-pressed", String(which === "cgi"));
+  }
+  bServlet.addEventListener("click", function () { setImpl("servlet"); });
+  bCgi.addEventListener("click", function () { setImpl("cgi"); });
+
+  var preset = new URLSearchParams(location.search).get("code");
+  if (preset) { input.value = preset; }
+
+  function esc(s) {
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  var MESSAGES = {
+    VALID:       "This badge is genuine and currently valid.",
+    NOT_FOUND:   "No badge has ever been issued with this code.",
+    REVOKED:     "This badge was issued, but has since been revoked.",
+    TAMPERED:    "This record does not match its own signature. Do not trust it.",
+    BAD_REQUEST: "Enter a verification code first.",
+    ERROR:       "The verification service could not be reached."
+  };
+
+  function render(data, rttMs, servedBy) {
+    var ok = data.valid === true;
+    out.hidden = false;
+    out.className = "result " + (ok ? "valid" : "invalid");
+
+    var html = "<div class='card'>";
+    html += "<p class='verdict'>" + (ok ? "&#10003; Valid badge"
+                                        : "&#10007; " + esc(data.status || "Not valid")) + "</p>";
+    html += "<p class='verdict-sub'>" +
+            esc(data.message || MESSAGES[data.status] || "") + "</p>";
+
+    if (ok) {
+      html += "<dl class='facts'>"
+           +  "<dt>Awarded to</dt><dd>" + esc(data.student.name) + "</dd>"
+           +  "<dt>Email</dt><dd class='mono'>" + esc(data.student.email) + "</dd>"
+           +  "<dt>Module</dt><dd>" + esc(data.module.title) + "</dd>"
+           +  "<dt>Unit</dt><dd>" + esc(data.module.unit) + "</dd>"
+           +  "<dt>Tier</dt><dd>" + esc(data.tier) + "</dd>"
+           +  "<dt>Score</dt><dd class='mono'>" + esc(data.score) + "</dd>"
+           +  "<dt>Issued</dt><dd class='mono'>" + esc(data.issuedAt) + " UTC</dd>"
+           +  "<dt>Code</dt><dd><code>" + esc(data.code) + "</code></dd>"
+           +  "</dl>";
+    }
+
+    html += "<p class='served'>served by " + esc(servedBy) +
+            " &middot; round trip " + rttMs.toFixed(1) + " ms";
+    if (typeof data.elapsedMs === "number") {
+      html += " &middot; server-side " + data.elapsedMs.toFixed(3) + " ms";
+    }
+    html += "</p></div>";
+
+    out.innerHTML = html;
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var code = input.value.trim();
+    if (!code) { return; }
+
+    var url = (impl === "servlet" ? SERVLET : CGI) + "?code=" + encodeURIComponent(code);
+    var label = impl === "servlet" ? "Java servlet on Tomcat"
+                                   : "Python CGI on Apache httpd";
+
+    submit.disabled = true;
+    submit.textContent = "Verifying...";
+    var t0 = performance.now();
+
+    fetch(url, { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { render(data, performance.now() - t0, label); })
+      .catch(function () {
+        out.hidden = false;
+        out.className = "result invalid";
+        out.innerHTML = "<div class='card'><p class='verdict'>&#10007; Unreachable</p>" +
+          "<p class='verdict-sub'>Could not reach the " + esc(label) + " endpoint. " +
+          (impl === "cgi"
+            ? "Is Apache running, and is verify.py deployed to C:\\xampp\\cgi-bin\\ ?"
+            : "Is Tomcat running on port 8080?") + "</p></div>";
+      })
+      .then(function () {
+        submit.disabled = false;
+        submit.textContent = "Verify badge";
+      });
+  });
+})();
+</script>
+</body>
+</html>

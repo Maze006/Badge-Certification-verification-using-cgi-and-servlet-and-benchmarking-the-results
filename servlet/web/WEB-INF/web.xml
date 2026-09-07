@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  =====================================================================
+   Verified Digital Skill-Badge Portal — deployment descriptor
+
+   Every servlet is declared and mapped explicitly here rather than with
+   @WebServlet annotations. That is a deliberate choice for this PBL:
+   one of the stated objectives is "correctly deploy a servlet on Apache
+   Tomcat with proper servlet mapping", and a single descriptor makes
+   the whole URL surface of the application readable in one screen.
+
+   Servlet API 3.1 — the version shipped with Tomcat 8.5, which is the
+   Tomcat bundled with XAMPP. Note the javax.servlet namespace; Tomcat
+   10 and later renamed it to jakarta.servlet and this descriptor would
+   need its version bumped to match.
+  =====================================================================
+-->
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+                             http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+
+  <display-name>Verified Digital Skill-Badge Portal</display-name>
+  <description>
+    Badge issuance and verification. The verification lookup exists twice:
+    here as a Java Servlet, and again as a Python CGI script under
+    Apache HTTP Server, so the two request lifecycles can be benchmarked
+    against each other.
+  </description>
+
+  <!-- ================================================================
+       Lifecycle listener.
+       Opens the JDBC connection pool once, at application startup.
+       This is the hook CGI has no equivalent of.
+       ================================================================ -->
+  <listener>
+    <listener-class>com.badgeportal.AppListener</listener-class>
+  </listener>
+
+  <!-- ================================================================
+       Verification lookup — THE BENCHMARKED ENDPOINT.
+       Its CGI twin lives at http://localhost/cgi-bin/verify.py
+       ================================================================ -->
+  <servlet>
+    <servlet-name>VerifyServlet</servlet-name>
+    <servlet-class>com.badgeportal.VerifyServlet</servlet-class>
+    <!-- Instantiate at startup rather than on the first request, so the
+         very first timed request is not paying class-loading costs. -->
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>VerifyServlet</servlet-name>
+    <url-pattern>/api/verify</url-pattern>
+  </servlet-mapping>
+
+  <!-- ================================================================
+       Badge issuance
+       ================================================================ -->
+  <servlet>
+    <servlet-name>IssueServlet</servlet-name>
+    <servlet-class>com.badgeportal.IssueServlet</servlet-class>
+    <load-on-startup>2</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>IssueServlet</servlet-name>
+    <url-pattern>/api/issue</url-pattern>
+  </servlet-mapping>
+
+  <!-- ================================================================
+       Student wallet (dynamic HTML rather than JSON)
+       ================================================================ -->
+  <servlet>
+    <servlet-name>WalletServlet</servlet-name>
+    <servlet-class>com.badgeportal.WalletServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>WalletServlet</servlet-name>
+    <url-pattern>/wallet</url-pattern>
+  </servlet-mapping>
+
+  <!-- ================================================================
+       Health / pool statistics
+       ================================================================ -->
+  <servlet>
+    <servlet-name>HealthServlet</servlet-name>
+    <servlet-class>com.badgeportal.HealthServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>HealthServlet</servlet-name>
+    <url-pattern>/api/health</url-pattern>
+  </servlet-mapping>
+
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+  </welcome-file-list>
+
+  <session-config>
+    <session-timeout>30</session-timeout>
+  </session-config>
+
+</web-app>
