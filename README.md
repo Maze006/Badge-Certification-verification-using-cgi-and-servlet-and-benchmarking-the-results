@@ -33,7 +33,8 @@ web tech project/
 │
 ├── sql/
 │   ├── 01_schema.sql                  4 tables + the least-privilege app user
-│   └── 02_seed.sql                    60 students, 6 modules, 336 completions
+│   ├── 02_seed.sql                    60 students, 6 modules, 336 completions
+│   └── 03_accounts_and_claims.sql     accounts + badge_claims (a migration)
 │
 ├── config/
 │   └── badgeportal.properties         ONE config file, read by BOTH sides:
@@ -65,7 +66,7 @@ web tech project/
 │
 ├── bench/
 │   ├── benchmark.py                   the load test (--replot to redraw only)
-│   ├── cgi_cost_breakdown.py          stage-by-stage: where the ~415 ms goes
+│   ├── cgi_cost_breakdown.py          stage-by-stage: where the ~369 ms goes
 │   ├── issue_badges.py                mints badges via the real endpoint
 │   ├── results.csv                    every measurement
 │   ├── results.md                     paste-ready tables
@@ -77,7 +78,8 @@ web tech project/
 │   ├── deploy.bat                     deploys BOTH implementations
 │   ├── start_tomcat.bat               pins Java 8, see the environment notes
 │   ├── stop_tomcat.bat
-│   └── fix_shebang.py                 8.3 short path for the CGI shebang
+│   ├── fix_shebang.py                 8.3 short path for the CGI shebang
+│   └── make_password_hash.py          PBKDF2 hashes for new accounts
 │
 ├── lib/
 │   └── mysql-connector-j-8.4.0.jar    JDBC driver, copied into WEB-INF/lib
@@ -107,16 +109,26 @@ Schema `badgeportal` on `localhost:3306`. Created by `sql/01_schema.sql`,
 populated by `sql/02_seed.sql`.
 
 ```
+   accounts ───── login identity (ADMIN or STUDENT)
+       │
+       ▼
    students ──────┐                    ┌────── modules
   student_id      │                    │      module_id
-                  ▼                    ▼
-          module_completions ─── proof the work was done
-                  │
-                  ▼
-               badges ──────────── the credential issued for it
-                                   verification_code is what the
-                                   public endpoints look up
+       │          ▼                    ▼
+       │  module_completions ─── proof the work was done
+       │          │
+       ▼          │
+ badge_claims     │   a REQUEST, not a credential.
+       │          │   no verification code until an admin approves.
+       ▼          ▼
+          badges ────────────── the credential itself
+                               verification_code is what the
+                               public endpoints look up
 ```
+
+Two paths lead to a badge. A completed module can be issued directly, or a
+student submits a claim for something earned elsewhere and an admin approves it.
+Either way the badge is minted by the server, never by the student.
 
 ### `students` — 60 rows
 
@@ -161,16 +173,21 @@ The table both verification endpoints read.
 |---|---|---|
 | `badge_id` | `int` | primary key, auto-increment |
 | `student_id` | `int` | FK to `students` |
-| `module_id` | `int` | FK to `modules` |
+| `module_id` | `int` NULL | FK to `modules`; `NULL` for claim-issued badges |
 | `verification_code` | `varchar(20)` | **unique** — e.g. `SF-DDDF-2864-66C7` |
 | `tier` | `enum` | `BRONZE` / `SILVER` / `GOLD` |
 | `score` | `decimal(5,2)` | copied from the completion at issue time |
 | `issued_at_ms` | `bigint` | the canonical issue timestamp, and the value fed into the hash |
 | `issued_at` | `datetime(3)` | the same instant, for display |
 | `revoked` | `tinyint(1)` | `0` or `1` |
+| `claim_id` | `int` NULL | FK to `badge_claims` when the badge came from a claim |
+| `source` | `enum` | `MODULE_COMPLETION` / `ADMIN_APPROVED` |
 
 Unique on `(student_id, module_id)` as well, which is what makes issuance
-idempotent at the database level rather than only in application code.
+idempotent at the database level rather than only in application code. Because
+SQL treats `NULL`s as distinct in a unique index, this still permits a student to
+hold many claim-issued badges (all with `module_id IS NULL`) while remaining
+limited to one badge per actual module.
 
 Three design decisions worth knowing:
 
@@ -188,7 +205,70 @@ rounding drifting between the two runtimes.
 completion. A credential should record what was true when it was issued; later
 edits to a completion must not silently restate an already-issued badge.
 
-### Accounts
+### `accounts` — 6 rows
+
+Login identities, added by `sql/03_accounts_and_claims.sql`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `account_id` | `int` | primary key |
+| `email` | `varchar(150)` | **unique across the whole table** — one email is one account with one password |
+| `password_hash` | `varchar(255)` | `pbkdf2_sha256$120000$salt$key`, self-describing |
+| `role` | `enum` | `ADMIN` / `STUDENT` — an identity is one or the other, never both |
+| `student_id` | `int` NULL | FK, unique; `NULL` for admins |
+| `is_active` | `tinyint(1)` | soft disable |
+| `created_at` / `last_login_at` | `datetime(3)` | |
+
+A `CHECK` constraint enforces that admins have no `student_id` and students must
+have one — the database refuses a malformed account rather than trusting
+application code to remember.
+
+Deliberately separate from `students`: a student is a person the institution
+knows about; an account is a way to log in. 54 of the 60 seeded students have no
+account at all, which is realistic.
+
+### `badge_claims` — 4 pending
+
+A student's request for a badge earned outside the course modules.
+
+| Column | Type | Notes |
+|---|---|---|
+| `claim_id` | `int` | primary key |
+| `student_id` | `int` | FK |
+| `title`, `issuer` | `varchar` | e.g. "Python for Everybody", "Coursera" |
+| `external_url` | `varchar(500)` | the link the student supplies |
+| `evidence_path` / `evidence_name` | `varchar` | uploaded file |
+| `proposed_tier` | `enum` | what the student asks for |
+| `status` | `enum` | `PENDING` / `APPROVED` / `REJECTED` |
+| `submitted_at` | `datetime(3)` | |
+| `reviewed_by` / `reviewed_at` / `review_note` | | the audit trail |
+
+**A claim is a request, never a credential.** It carries no verification code and
+is invisible to `/api/verify`. Only when an admin approves does a row appear in
+`badges` with a server-generated code. Keeping them in separate tables makes that
+distinction structural rather than a flag somebody has to remember to check — and
+it is what stops a student awarding themselves a credential.
+
+### Demo login credentials
+
+Development only. Created by `sql/03_accounts_and_claims.sql`.
+
+| Email | Password | Role |
+|---|---|---|
+| `admin@college.edu` | `Admin@123` | Admin |
+| `aarav.sharma@college.edu` | `Student@123` | Student |
+| `diya.patel@college.edu` | `Student@123` | Student |
+| `rohan.mehta@college.edu` | `Student@123` | Student |
+| `ishita.nair@college.edu` | `Student@123` | Student |
+| `kabir.singh@college.edu` | `Student@123` | Student |
+
+To add another account, generate a hash and paste the `INSERT` it prints:
+
+```bash
+python scripts\make_password_hash.py "YourPassword" --sql someone@college.edu STUDENT --student-id 7
+```
+
+### Database accounts
 
 | User | Password | Rights |
 |---|---|---|
@@ -271,6 +351,17 @@ mysql -u root -p < sql/02_seed.sql
 This creates the `badgeportal` database, a least-privilege `badgeuser` account,
 and seeds 60 students, 6 modules and 336 module completions. It creates **no**
 badges — those get issued by the servlet in step 5.
+
+Then apply the accounts and claims migration:
+
+```bash
+mysql -u root -p < sql/03_accounts_and_claims.sql
+```
+
+This adds `accounts` and `badge_claims`, makes `badges.module_id` nullable for
+claim-issued badges, and seeds the demo logins listed above. It is a **migration,
+not a rebuild** — it never drops anything, and re-running it is safe, so an
+existing database keeps every badge it has already issued.
 
 If you change the database password, change it in
 `config/badgeportal.properties`; both implementations read that one file.
