@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CGI vs servlet benchmark</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="seal" aria-hidden="true">&#10003;</div>
+  <div>
+    <a class="brand" href="index.html">Verified skill-badge portal</a>
+    <p class="tagline">Micro-credentials issued with a tamper-evident verification code</p>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <ul>
+    <li><a href="index.html">home</a></li>
+    <li><a href="wallet">wallets</a></li>
+    <li><a href="verify.html">verify</a></li>
+    <li><a href="benchmark.html" class="is-active" aria-current="page">benchmark</a></li>
+    <li><a href="health.html">health</a></li>
+  </ul>
+</nav>
+
+<main class="wrap">
+
+  <header class="page-head">
+    <h1>One lookup, built two ways</h1>
+    <p class="sub">
+      Students earn skill badges for completing course modules. Every badge
+      carries a verification code that anyone can check without an account.
+      The verification lookup is implemented twice &mdash; once as a CGI
+      script, once as a Java servlet &mdash; and benchmarked against itself.
+    </p>
+  </header>
+
+  <div class="tiles">
+
+    <a class="tile" href="wallet">
+      <h3>Student wallet</h3>
+      <p>Browse students, see the badges they hold, and issue a badge for a
+         completed module.</p>
+    </a>
+
+    <a class="tile" href="verify.html">
+      <h3>Verify a badge</h3>
+      <p>The public, employer-facing check. Paste a code and get back the
+         badge it belongs to, from either implementation.</p>
+    </a>
+
+    <a class="tile" href="health.html">
+      <h3>Servlet health</h3>
+      <p>Connection-pool statistics. Reload a few times and watch
+         <code>borrows</code> climb while the pool size never moves.</p>
+    </a>
+
+  </div>
+
+  <h2 class="section">The two implementations</h2>
+  <div class="card">
+    <table class="grid">
+      <thead>
+        <tr><th>Endpoint</th><th>Served by</th><th>Model</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>/badgeportal/api/verify</code></td>
+          <td>Apache Tomcat<span class="unit-inline">port 8080</span></td>
+          <td>One JVM, a pool of worker threads, a pool of live JDBC
+              connections. Nothing is created per request.</td>
+        </tr>
+        <tr>
+          <td><code>/cgi-bin/verify.py</code></td>
+          <td>Apache HTTP Server<span class="unit-inline">mod_cgi, port 80</span></td>
+          <td>A brand-new <code>python.exe</code> process per request, which
+              must import its libraries and open its own database connection
+              before it can answer, then exits.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="section">Mean response time <span class="count">100 requests</span></h2>
+  <div class="card">
+    <div class="bench">
+
+      <div class="bench-row">
+        <div class="bench-label">Java servlet<span>Tomcat, pooled</span></div>
+        <div class="bench-track">
+          <div class="bench-fill" style="width:0.37%"></div>
+        </div>
+        <div class="bench-value">1.47 ms</div>
+      </div>
+
+      <div class="bench-row">
+        <div class="bench-label">Python CGI<span>Apache, per-request process</span></div>
+        <div class="bench-track">
+          <div class="bench-fill" style="width:100%"></div>
+        </div>
+        <div class="bench-value">395.88 ms</div>
+      </div>
+
+    </div>
+    <p class="bench-note">
+      Bars are drawn to scale, which is why the servlet is barely a sliver.
+      Both endpoints answer the same question with the same SQL against the
+      same indexed table, so the difference is the request lifecycle and
+      nothing else. The servlet is <strong>269&times;</strong> faster, and
+      only <strong>0.13%</strong> of a CGI request is the database lookup
+      itself &mdash; the rest is setup the process throws away on exit.
+      Under 40 concurrent clients CGI does not just plateau, it
+      <strong>halves</strong> to 12.7 requests/second while the servlet holds
+      at 4.66&nbsp;ms.
+    </p>
+  </div>
+
+  <h2 class="section">Reproducing the benchmark</h2>
+  <div class="card">
+    <p class="code-caption">from the project root</p>
+    <pre class="code-block">python bench\benchmark.py --requests 100 --levels 1,2,5,10,20,40
+python bench\cgi_cost_breakdown.py</pre>
+    <p class="bench-note">
+      Writes <code>bench/results.csv</code>, <code>bench/chart.png</code> and a
+      markdown results table. Before timing anything it asserts that the two
+      implementations return identical JSON &mdash; every field but the two
+      that name the implementation and report its own timing. If they ever
+      drifted apart the comparison would not be fair, so the benchmark
+      refuses to run.
+    </p>
+  </div>
+
+</main>
+
+<footer class="site-foot">
+  PBL 3 &middot; Verified digital skill-badge portal &middot;
+  <strong>CGI vs servlet</strong>
+</footer>
+
+</body>
+</html>

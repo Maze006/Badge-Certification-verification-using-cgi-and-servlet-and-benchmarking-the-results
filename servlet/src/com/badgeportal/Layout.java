@@ -31,7 +31,22 @@ public final class Layout {
      * resolve identically no matter how deep the page sits.
      */
     public static String head(String title, String activeTab, String ctx) {
-        StringBuilder sb = new StringBuilder(900);
+        return head(title, activeTab, ctx, null);
+    }
+
+    /**
+     * @param account the signed-in account, or null.
+     *
+     * The first nav tab depends on who is looking. For a visitor it is
+     * "home", the landing page. For somebody signed in it is
+     * "dashboard": sending an authenticated user back to a
+     * tap-anywhere-to-begin splash screen would be absurd.
+     */
+    public static String head(String title, String activeTab, String ctx,
+                              Accounts.Account account) {
+        boolean signedIn = account != null;
+
+        StringBuilder sb = new StringBuilder(1000);
         sb.append("<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'>")
           .append("<meta name='viewport' content='width=device-width,initial-scale=1'>")
           .append("<title>").append(Json.html(title)).append("</title>")
@@ -41,15 +56,23 @@ public final class Layout {
           .append("<header class='site-header'>")
           .append("<div class='seal' aria-hidden='true'>&#10003;</div><div>")
           .append("<a class='brand' href='").append(ctx)
-          .append("/index.html'>Verified skill-badge portal</a>")
+          .append(signedIn ? Auth.homeFor(account) : "/index.html")
+          .append("'>Verified skill-badge portal</a>")
           .append("<p class='tagline'>Micro-credentials issued with a ")
           .append("tamper-evident verification code</p>")
           .append("</div></header>")
-          .append("<nav class='nav-tabs'><ul>")
-          .append(tab(ctx + "/index.html",  "home",    activeTab))
-          .append(tab(ctx + "/wallet",      "wallets", activeTab))
-          .append(tab(ctx + "/verify.html", "verify",  activeTab))
-          .append(tab(ctx + "/health.html", "health",  activeTab))
+          .append("<nav class='nav-tabs'><ul>");
+
+        if (signedIn) {
+            sb.append(tab(ctx + Auth.homeFor(account), "dashboard", activeTab));
+        } else {
+            sb.append(tab(ctx + "/index.html", "home", activeTab));
+        }
+
+        sb.append(tab(ctx + "/wallet",         "wallets",   activeTab))
+          .append(tab(ctx + "/verify.html",    "verify",    activeTab))
+          .append(tab(ctx + "/benchmark.html", "benchmark", activeTab))
+          .append(tab(ctx + "/health.html",    "health",    activeTab))
           .append("</ul></nav>");
         return sb.toString();
     }
@@ -57,8 +80,8 @@ public final class Layout {
     /** Page chrome plus the signed-in bar. */
     public static String headSignedIn(String title, String activeTab,
                                       Accounts.Account account, String ctx) {
-        StringBuilder sb = new StringBuilder(1200);
-        sb.append(head(title, activeTab, ctx));
+        StringBuilder sb = new StringBuilder(1400);
+        sb.append(head(title, activeTab, ctx, account));
         if (account != null) {
             sb.append("<div class='session-bar'><div class='session-inner'>")
               .append("<span>Signed in as <strong>")

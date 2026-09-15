@@ -53,10 +53,11 @@ web tech project/
 │   │   ├── Json.java                  minimal JSON writer + HTML escaping
 │   │   └── TimeFmt.java               one UTC format, shared with Python
 │   └── web/
-│       ├── index.html                 portal home, benchmark bars
+│       ├── index.html                 landing page, tap anywhere to begin
 │       ├── verify.html                public verify page, implementation toggle
 │       ├── health.html                pool statistics as a JSON code block
 │       ├── role.html                   admin / student role selection
+│       ├── benchmark.html              the CGI vs servlet comparison
 │       ├── css/style.css              the whole visual system
 │       └── WEB-INF/web.xml            explicit servlet mappings
 │
@@ -445,7 +446,8 @@ verify, health.
 
 | URL | Served by | What it is |
 |---|---|---|
-| `http://localhost:8080/badgeportal/` | `index.html` | Portal home, with the benchmark bars |
+| `http://localhost:8080/badgeportal/` | `index.html` | Landing page — tap anywhere to begin |
+| `http://localhost:8080/badgeportal/benchmark.html` | static | The CGI vs servlet comparison, with the bars |
 | `http://localhost:8080/badgeportal/wallet` | `WalletServlet` | Pick a student |
 | `http://localhost:8080/badgeportal/wallet?studentId=1` | `WalletServlet` | That student's badges, with codes and verify links; issues badges for unclaimed modules |
 | `http://localhost:8080/badgeportal/verify.html` | static | Public verify page — takes only a code, and answers it with **either** implementation so you can watch the round-trip time change |

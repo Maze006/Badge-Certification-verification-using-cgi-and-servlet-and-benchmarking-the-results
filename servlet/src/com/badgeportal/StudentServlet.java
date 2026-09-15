@@ -72,7 +72,7 @@ public class StudentServlet extends HttpServlet {
         }
 
         StringBuilder out = new StringBuilder(2000);
-        out.append(Layout.headSignedIn("Student dashboard", "", account, ctx))
+        out.append(Layout.headSignedIn("Student dashboard", "dashboard", account, ctx))
            .append("<main class='wrap'>")
            .append("<header class='page-head'><h1>")
            .append(Json.html(account.displayName)).append("</h1>")

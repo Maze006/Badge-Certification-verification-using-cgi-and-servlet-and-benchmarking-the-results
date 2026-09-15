@@ -38,7 +38,7 @@ public class AdminServlet extends HttpServlet {
         int pending = countPending();
 
         StringBuilder out = new StringBuilder(2000);
-        out.append(Layout.headSignedIn("Admin dashboard", "", account, ctx))
+        out.append(Layout.headSignedIn("Admin dashboard", "dashboard", account, ctx))
            .append("<main class='wrap'>")
            .append("<header class='page-head'><h1>Admin dashboard</h1>")
            .append("<p class='sub'>Verify the badges students have submitted.</p>")
