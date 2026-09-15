@@ -64,6 +64,14 @@
     <filter-name>AuthFilter</filter-name>
     <url-pattern>/student/*</url-pattern>
   </filter-mapping>
+  <!-- Uploaded evidence. Guarded like the dashboards; EvidenceServlet
+       then checks that this particular claim belongs to this particular
+       student, because being signed in is not the same as being
+       entitled to a given file. -->
+  <filter-mapping>
+    <filter-name>AuthFilter</filter-name>
+    <url-pattern>/files/*</url-pattern>
+  </filter-mapping>
 
   <!-- ================================================================
        Verification lookup — THE BENCHMARKED ENDPOINT.
@@ -160,6 +168,40 @@
   <servlet-mapping>
     <servlet-name>StudentServlet</servlet-name>
     <url-pattern>/student/dashboard</url-pattern>
+  </servlet-mapping>
+
+  <!-- ================================================================
+       Badge claims: submission, and serving the evidence attached to
+       one. multipart-config is declared here rather than with an
+       @MultipartConfig annotation, to keep every deployment decision
+       in this one descriptor.
+
+       max-file-size is the container's own guard, so an oversized
+       upload is refused before the application sees a byte of it.
+       Uploads re-checks the size as it streams, because a limit worth
+       enforcing is worth enforcing twice.
+       ================================================================ -->
+  <servlet>
+    <servlet-name>ClaimServlet</servlet-name>
+    <servlet-class>com.badgeportal.ClaimServlet</servlet-class>
+    <multipart-config>
+      <max-file-size>5242880</max-file-size>
+      <max-request-size>6291456</max-request-size>
+      <file-size-threshold>262144</file-size-threshold>
+    </multipart-config>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ClaimServlet</servlet-name>
+    <url-pattern>/student/claim</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>EvidenceServlet</servlet-name>
+    <servlet-class>com.badgeportal.EvidenceServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>EvidenceServlet</servlet-name>
+    <url-pattern>/files/evidence</url-pattern>
   </servlet-mapping>
 
   <welcome-file-list>

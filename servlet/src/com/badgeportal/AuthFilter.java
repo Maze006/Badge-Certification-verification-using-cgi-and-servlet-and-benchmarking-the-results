@@ -68,11 +68,23 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // Signed in as the wrong role. Not a redirect to the other login
-        // page -- they are already authenticated, they simply may not be
-        // here. 403 is the honest answer.
-        boolean wantsAdmin = path.startsWith("/admin");
-        if (wantsAdmin != account.isAdmin()) {
+        // Role gate, but ONLY for the paths that actually declare a role.
+        //
+        // /admin/* is for admins and /student/* is for students. Other
+        // guarded paths -- /files/* today -- are legitimately reachable
+        // by both, and the servlet behind them decides what this
+        // particular person may see. An earlier version tested
+        // "path.startsWith("/admin") != account.isAdmin()", which
+        // quietly 403'd admins on every non-/admin guarded path,
+        // because a path with no role prefix reads as "wants student".
+        //
+        // Requiring a role prefix before enforcing one keeps the rule
+        // honest as more guarded paths are added.
+        boolean adminArea   = path.startsWith("/admin");
+        boolean studentArea = path.startsWith("/student");
+
+        if ((adminArea && !account.isAdmin())
+         || (studentArea && !account.isStudent())) {
             deny(req, resp, account);
             return;
         }

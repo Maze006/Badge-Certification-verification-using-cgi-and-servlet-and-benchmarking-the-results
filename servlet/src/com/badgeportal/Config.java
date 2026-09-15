@@ -73,6 +73,24 @@ public final class Config {
              + "&serverTimezone=UTC&characterEncoding=utf8";
     }
 
+    /**
+     * Where uploaded certificates are written.
+     *
+     * Deliberately OUTSIDE the deployed web application. Anything under
+     * webapps/badgeportal/ is served by Tomcat as a static file, so
+     * storing evidence there would publish every student's certificate
+     * to anyone who could guess a filename. Files here are reachable
+     * only through EvidenceServlet, which checks who is asking.
+     */
+    public static String uploadDir() {
+        return get("upload.dir", "C:/xampp/badgeportal-uploads");
+    }
+
+    /** Largest accepted upload, in bytes. */
+    public static long uploadMaxBytes() {
+        return getInt("upload.max.bytes", 5 * 1024 * 1024);
+    }
+
     public static String dbUser()   { return get("db.user", "badgeuser"); }
     public static String dbPass()   { return get("db.password", "badgepass123"); }
     public static int    poolSize() { return getInt("db.pool.size", 16); }

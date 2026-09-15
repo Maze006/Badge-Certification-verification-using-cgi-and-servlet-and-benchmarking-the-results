@@ -456,6 +456,7 @@ verify, health.
 | `http://localhost:8080/badgeportal/login?role=student` | `LoginServlet` | Role-aware sign-in |
 | `http://localhost:8080/badgeportal/student/dashboard` | `StudentServlet` | **Requires a student session** |
 | `http://localhost:8080/badgeportal/admin/dashboard` | `AdminServlet` | **Requires an admin session** |
+| `http://localhost:8080/badgeportal/files/evidence?claim=N` | `EvidenceServlet` | Uploaded certificate — owner or admin only |
 
 And the endpoints behind them:
 

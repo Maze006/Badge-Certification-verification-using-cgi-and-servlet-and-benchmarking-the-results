@@ -46,3 +46,14 @@ db.pool.size=16
 # invalidates every badge already issued -- the codes in the database
 # were derived from the old value and will no longer recompute.
 badge.secret=CHANGE_ME_TO_A_LONG_RANDOM_STRING
+
+# --- Uploaded evidence -----------------------------------------------
+# Where students' uploaded certificates are written.
+#
+# This MUST sit outside the deployed web application. Anything under
+# webapps/badgeportal/ is served by Tomcat as a static file, so putting
+# evidence there would publish every student's certificate to anyone who
+# could guess a filename. Files here are reachable only through
+# EvidenceServlet, which checks who is asking before serving one.
+upload.dir=C:/xampp/badgeportal-uploads
+upload.max.bytes=5242880
