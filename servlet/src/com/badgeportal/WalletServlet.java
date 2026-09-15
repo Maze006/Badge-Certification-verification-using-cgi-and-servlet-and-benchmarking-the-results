@@ -71,14 +71,14 @@ public class WalletServlet extends HttpServlet {
         try {
             conn = Db.borrow();
             if (studentId <= 0) {
-                renderPicker(out, conn);
+                renderPicker(out, conn, req.getContextPath());
             } else {
                 renderWallet(out, conn, studentId, req.getContextPath());
             }
         } catch (SQLException e) {
             log("[badgeportal] wallet failed for student " + studentId, e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print(head("Wallet unavailable")
+            out.print(head("Wallet unavailable", req.getContextPath())
                     + "<main class='wrap'><div class='card empty'>"
                     + "<h2>Wallet temporarily unavailable</h2>"
                     + "<p>The database could not be reached. Check that MySQL is "
@@ -90,8 +90,9 @@ public class WalletServlet extends HttpServlet {
     }
 
     // -----------------------------------------------------------------
-    private void renderPicker(PrintWriter out, Connection conn) throws SQLException {
-        out.print(head("Student wallets"));
+    private void renderPicker(PrintWriter out, Connection conn, String ctx)
+            throws SQLException {
+        out.print(head("Student wallets", ctx));
         out.print("<main class='wrap'>");
         out.print("<header class='page-head'><h1>Student wallets</h1>"
                 + "<p class='sub'>Pick a student to open their skill-badge wallet.</p>"
@@ -143,7 +144,7 @@ public class WalletServlet extends HttpServlet {
         }
 
         if (name == null) {
-            out.print(head("Unknown student")
+            out.print(head("Unknown student", ctx)
                     + "<main class='wrap'><div class='card empty'>"
                     + "<h2>No such student</h2><p>There is no student with id "
                     + studentId + ".</p><p><a class='btn' href='" + ctx
@@ -151,7 +152,7 @@ public class WalletServlet extends HttpServlet {
             return;
         }
 
-        out.print(head(name + " - skill badge wallet"));
+        out.print(head(name + " - skill badge wallet", ctx));
         out.print("<main class='wrap'>");
         out.print("<header class='page-head'>"
                 + "<p class='eyebrow'><a href='" + ctx + "/wallet'>&larr; All students</a></p>"
@@ -275,34 +276,16 @@ public class WalletServlet extends HttpServlet {
 
     // -----------------------------------------------------------------
     /**
-     * The site chrome: seal, title, and the four-tab nav that every page
-     * in the portal carries. Kept identical to the markup in index.html,
-     * verify.html and health.html so the wallet does not drift away from
-     * the static pages visually.
+     * Page chrome, delegated to Layout so the wallet, the dashboards and
+     * the sign-in page cannot drift apart. This class carried its own
+     * private copy while it was the only server-rendered page; that did
+     * not survive the arrival of four more.
      */
-    static String head(String title) {
-        return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'>"
-             + "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-             + "<title>" + Json.html(title) + "</title>"
-             + "<link rel='stylesheet' href='css/style.css'>"
-             + "</head><body>"
-             + "<header class='site-header'>"
-             + "<div class='seal' aria-hidden='true'>&#10003;</div><div>"
-             + "<a class='brand' href='index.html'>Verified skill-badge portal</a>"
-             + "<p class='tagline'>Micro-credentials issued with a "
-             + "tamper-evident verification code</p>"
-             + "</div></header>"
-             + "<nav class='nav-tabs'><ul>"
-             + "<li><a href='index.html'>home</a></li>"
-             + "<li><a href='wallet' class='is-active' aria-current='page'>wallets</a></li>"
-             + "<li><a href='verify.html'>verify</a></li>"
-             + "<li><a href='health.html'>health</a></li>"
-             + "</ul></nav>";
+    static String head(String title, String ctx) {
+        return Layout.head(title, "wallets", ctx);
     }
 
     static String foot() {
-        return "<footer class='site-foot'>Served by the "
-             + "<strong>servlet</strong> implementation on Apache Tomcat"
-             + "</footer></body></html>";
+        return Layout.foot();
     }
 }

@@ -556,6 +556,78 @@ dl.facts dd.mono { font-size: 13px; }
   color: var(--ink-muted);
 }
 
+/* --- signed-in bar --------------------------------------------------- */
+.session-bar {
+  border-bottom: 1px solid var(--hairline);
+  background: var(--cream-sunk);
+  margin-top: -34px;
+  margin-bottom: 34px;
+}
+
+.session-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 9px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.session-inner strong { color: var(--black); font-weight: 600; }
+
+.role-chip {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  padding: 1px 7px;
+  margin-left: 4px;
+  border: 1px solid var(--black);
+  border-radius: 999px;
+  color: var(--black);
+}
+
+/* --- forms ----------------------------------------------------------- */
+.wrap.narrow { max-width: 520px; }
+
+.field { margin-bottom: 18px; }
+
+.form-error {
+  margin: 0 0 18px;
+  padding: 11px 14px;
+  border: 1px solid var(--black);
+  border-radius: var(--radius);
+  background: var(--cream-sunk);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+input[type="email"], input[type="password"], input[type="url"], textarea {
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+  padding: 11px 14px;
+  color: var(--black);
+  background: var(--cream);
+  border: var(--border);
+  border-radius: var(--radius);
+}
+
+textarea { font-family: var(--sans); min-height: 90px; resize: vertical; }
+
+/* --- stat numbers on dashboard tiles ---------------------------------- */
+.stat-number {
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 6px 0 4px;
+  color: var(--black);
+}
+
 /* --- footer --------------------------------------------------------- */
 .site-foot {
   max-width: 880px;

@@ -56,6 +56,7 @@ web tech project/
 │       ├── index.html                 portal home, benchmark bars
 │       ├── verify.html                public verify page, implementation toggle
 │       ├── health.html                pool statistics as a JSON code block
+│       ├── role.html                   admin / student role selection
 │       ├── css/style.css              the whole visual system
 │       └── WEB-INF/web.xml            explicit servlet mappings
 │
@@ -449,6 +450,10 @@ verify, health.
 | `http://localhost:8080/badgeportal/wallet?studentId=1` | `WalletServlet` | That student's badges, with codes and verify links; issues badges for unclaimed modules |
 | `http://localhost:8080/badgeportal/verify.html` | static | Public verify page — takes only a code, and answers it with **either** implementation so you can watch the round-trip time change |
 | `http://localhost:8080/badgeportal/health.html` | static | Pool statistics rendered as a JSON code block |
+| `http://localhost:8080/badgeportal/role.html` | static | Choose Admin or Student |
+| `http://localhost:8080/badgeportal/login?role=student` | `LoginServlet` | Role-aware sign-in |
+| `http://localhost:8080/badgeportal/student/dashboard` | `StudentServlet` | **Requires a student session** |
+| `http://localhost:8080/badgeportal/admin/dashboard` | `AdminServlet` | **Requires an admin session** |
 
 And the endpoints behind them:
 
