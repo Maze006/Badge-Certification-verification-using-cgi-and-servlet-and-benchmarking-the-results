@@ -1,6 +1,6 @@
 # CGI vs Servlet -- verification lookup benchmark
 
-Generated 2026-09-07 11:04:33
+Generated 2026-09-16 00:27:57
 
 
 | | |
@@ -16,18 +16,18 @@ Generated 2026-09-07 11:04:33
 
 | Implementation | Mean | Median | p95 | p99 | Min | Max | Throughput |
 |---|---|---|---|---|---|---|---|
-| Python CGI | 375.51 ms | 371.95 ms | 406.87 ms | 432.98 ms | 299.69 ms | 436.94 ms | 2.7 req/s |
-| Java Servlet | 2.63 ms | 2.28 ms | 3.42 ms | 6.30 ms | 1.55 ms | 23.62 ms | 373.4 req/s |
+| Python CGI | 395.88 ms | 396.52 ms | 411.19 ms | 417.59 ms | 292.44 ms | 418.63 ms | 2.5 req/s |
+| Java Servlet | 1.47 ms | 1.19 ms | 2.09 ms | 5.41 ms | 0.83 ms | 20.83 ms | 666.0 req/s |
 
-**The servlet answers the same lookup 143 times faster.**
+**The servlet answers the same lookup 269 times faster.**
 
 ## Concurrency sweep
 
 | Concurrent clients | CGI mean | Servlet mean | CGI p95 | Servlet p95 | CGI req/s | Servlet req/s | Speed-up |
 |---|---|---|---|---|---|---|---|
-| 1 | 384.85 ms | 2.34 ms | 425.36 ms | 3.75 ms | 2.6 | 420.3 | 165x |
-| 2 | 361.34 ms | 2.64 ms | 391.36 ms | 3.64 ms | 5.5 | 739.9 | 137x |
-| 5 | 388.76 ms | 2.33 ms | 418.00 ms | 4.38 ms | 12.8 | 2046.3 | 167x |
-| 10 | 435.44 ms | 3.52 ms | 489.70 ms | 5.73 ms | 22.6 | 2534.0 | 124x |
-| 20 | 648.92 ms | 4.31 ms | 726.00 ms | 9.14 ms | 29.9 | 2315.9 | 150x |
-| 40 | 1158.10 ms | 3.79 ms | 1645.55 ms | 9.67 ms | 30.7 | 1880.3 | 306x |
+| 1 | 394.84 ms | 1.37 ms | 409.99 ms | 1.79 ms | 2.5 | 713.3 | 287x |
+| 2 | 395.20 ms | 1.49 ms | 412.82 ms | 1.78 ms | 5.1 | 1308.5 | 266x |
+| 5 | 427.43 ms | 1.77 ms | 462.54 ms | 2.18 ms | 11.6 | 2645.3 | 241x |
+| 10 | 482.44 ms | 2.67 ms | 593.37 ms | 4.73 ms | 20.1 | 3240.3 | 181x |
+| 20 | 763.72 ms | 4.78 ms | 982.56 ms | 11.30 ms | 24.6 | 1789.7 | 160x |
+| 40 | 2590.89 ms | 4.66 ms | 4066.65 ms | 9.37 ms | 12.7 | 1315.6 | 556x |

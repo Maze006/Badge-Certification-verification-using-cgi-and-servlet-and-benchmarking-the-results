@@ -11,8 +11,11 @@ Apache HTTP Server, once as a Java Servlet on Apache Tomcat. Both answer the sam
 question with the same SQL and return byte-identical JSON, so timing them against
 each other isolates one variable: the request lifecycle.
 
-The servlet answers the same lookup **241× faster**, and saturates at roughly
-**80× the throughput**. Full numbers in [REPORT.md](REPORT.md).
+The servlet answers the same lookup **269× faster** and sustains **73× the
+throughput**. Pushed to 40 concurrent clients, CGI does not merely plateau — its
+throughput *halves* while p95 reaches 4.07 seconds. Full numbers in
+[REPORT.md](REPORT.md), and the mechanism behind them in
+[docs/EXPLAINED.md](docs/EXPLAINED.md).
 
 ---
 

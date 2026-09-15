@@ -90,9 +90,9 @@
       <div class="bench-row">
         <div class="bench-label">Java servlet<span>Tomcat, pooled</span></div>
         <div class="bench-track">
-          <div class="bench-fill" style="width:0.62%"></div>
+          <div class="bench-fill" style="width:0.37%"></div>
         </div>
-        <div class="bench-value">2.38 ms</div>
+        <div class="bench-value">1.47 ms</div>
       </div>
 
       <div class="bench-row">
@@ -100,7 +100,7 @@
         <div class="bench-track">
           <div class="bench-fill" style="width:100%"></div>
         </div>
-        <div class="bench-value">386.17 ms</div>
+        <div class="bench-value">395.88 ms</div>
       </div>
 
     </div>
@@ -108,9 +108,12 @@
       Bars are drawn to scale, which is why the servlet is barely a sliver.
       Both endpoints answer the same question with the same SQL against the
       same indexed table, so the difference is the request lifecycle and
-      nothing else. The servlet is <strong>162&times;</strong> faster, and
-      only <strong>0.10%</strong> of a CGI request is the database lookup
+      nothing else. The servlet is <strong>269&times;</strong> faster, and
+      only <strong>0.13%</strong> of a CGI request is the database lookup
       itself &mdash; the rest is setup the process throws away on exit.
+      Under 40 concurrent clients CGI does not just plateau, it
+      <strong>halves</strong> to 12.7 requests/second while the servlet holds
+      at 4.66&nbsp;ms.
     </p>
   </div>
 

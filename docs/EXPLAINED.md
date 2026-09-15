@@ -361,17 +361,17 @@ processes per stage):
 
 | Stage | This step | Servlet equivalent |
 |---|---|---|
-| Process start (fork/exec + interpreter) | 59.61 ms | none |
-| stdlib imports | 52.55 ms | paid once at startup |
-| `mysql.connector` import | **199.02 ms** | paid once at startup |
-| Connect and authenticate to MySQL | 103.55 ms | paid once at startup |
-| **The indexed SELECT** | **0.43 ms** | **0.43 ms** |
+| Process start (fork/exec + interpreter) | 81.27 ms | none |
+| stdlib imports | 50.16 ms | paid once at startup |
+| `mysql.connector` import | **192.90 ms** | paid once at startup |
+| Connect and authenticate to MySQL | 44.47 ms | paid once at startup |
+| **The indexed SELECT** | **0.49 ms** | **0.49 ms** |
 
-**0.43 ms of a 415 ms request is the work the user asked for. That is 0.10%.**
+**0.49 ms of a 369 ms request is the work the user asked for. That is 0.13%.**
 
-The other 414.7 ms is context that the previous request already had and threw
-away on exit. The servlet pays that same 414.7 ms exactly once, when the
-application starts, and then answers every subsequent request with the 0.43 ms
+The other 368.8 ms is context that the previous request already had and threw
+away on exit. The servlet pays that same 368.8 ms exactly once, when the
+application starts, and then answers every subsequent request with the 0.49 ms
 alone.
 
 That single table is the whole argument. Everything else is confirmation.
@@ -399,18 +399,25 @@ not just for the requester. Measured:
 
 | Clients | CGI latency | CGI throughput |
 |---|---|---|
-| 1 | 390 ms | 2.6 req/s |
-| 5 | 402 ms | 12.4 req/s |
-| 10 | 440 ms | 22.4 req/s |
-| 20 | 690 ms | 27.9 req/s |
-| 40 | **1,339 ms** | **26.5 req/s** ← *lower* |
+| 1 | 395 ms | 2.5 req/s |
+| 5 | 427 ms | 11.6 req/s |
+| 10 | 482 ms | 20.1 req/s |
+| 20 | 764 ms | 24.6 req/s |
+| 40 | **2,591 ms** | **12.7 req/s** ← *halved* |
 
-Look at the last row. Doubling the load **nearly doubled the wait and delivered
-less work**. That is saturation: past a certain point the machine spends more
-effort creating and destroying processes than answering with them.
+Look at the last row. Doubling the offered load **more than tripled the wait and
+halved the work delivered**. That is saturation turning into collapse: past a
+certain point the machine spends more of itself creating and destroying
+processes than answering with them, so adding load actively subtracts capacity.
+At that level CGI's p95 is **4.07 seconds** — one request in twenty takes longer
+than most people will wait.
 
-The servlet at 40 concurrent clients: **4.54 ms**, 2,281 req/s — slightly
-*faster* than at 20, because threads are cheap and the pool absorbs the load.
+This is worse than being slow. A system that degrades *faster* than the load
+causing it cannot absorb a burst; it amplifies one.
+
+The servlet at 40 concurrent clients: **4.66 ms**, 1,316 req/s — essentially
+unchanged from 20 clients, because threads are cheap and the pool absorbs the
+load. Its latency across the entire sweep moves only from 1.37 ms to 4.66 ms.
 
 ### Why this matters for a credentialing platform
 
@@ -418,7 +425,7 @@ Verification traffic is public, uncontrolled and spiky. A graduating cohort puts
 thousands of badge links into CVs; those get clicked by employers and screening
 tools in bursts nobody schedules.
 
-At 28 req/s ceiling, the CGI version supports about 2.4 million verifications
+At a 24.6 req/s ceiling, the CGI version supports about 2.1 million verifications
 per day *at absolute saturation*, while already making every employer wait over
 a second. The servlet handles the same load at under 1% of capacity.
 
@@ -437,10 +444,10 @@ request path.**
 
 | | CGI | Servlet | |
 |---|---|---|---|
-| Mean response | 386.17 ms | **2.38 ms** | 162× |
-| Median | 386.26 ms | 2.15 ms | |
-| p95 | 400.41 ms | 3.09 ms | |
-| Throughput ceiling | ~28 req/s | 2,379 req/s | 85× |
+| Mean response | 395.88 ms | **1.47 ms** | 269x |
+| Median | 396.52 ms | 1.19 ms | |
+| p95 | 411.19 ms | 2.09 ms | |
+| Throughput ceiling | 24.6 req/s | 3,240 req/s | 132x |
 
 ### Why the comparison is fair
 
@@ -469,12 +476,12 @@ produced numbers at all.
 Stated plainly, because knowing the limits of your own evidence is the point:
 
 - **The servlet's ceiling is the test client, not the servlet.** The load
-  generator is Python on the same machine. 2,379 req/s is a floor on servlet
-  capacity. The honest claim is "at least 85×".
+  generator is Python on the same machine. 3,240 req/s is a floor on servlet
+  capacity. The honest claim is "at least 132x".
 - **Everything shares one CPU** — client, both servers, MySQL.
 - **This is not the fastest possible CGI.** A compiled C CGI binary would skip
   the 199 ms interpreter-import cost entirely. What survives that objection is
-  the **59.61 ms process-creation floor** — still 25× the servlet's *entire*
+  the **81.27 ms process-creation floor** - still 55x the servlet's *entire*
   response time, and unavoidable in any CGI, in any language, on this machine.
 
 ---
@@ -529,7 +536,7 @@ More honest than an average, because averages hide the slow tail that users
 actually complain about.
 
 **Throughput saturation** — the point where adding load stops increasing work
-done and only increases waiting. CGI reaches it at about 28 requests/second on
+done and only increases waiting. CGI reaches it at about 25 requests/second on
 this machine.
 
 **Tamper-evident** — edits can be *detected*, not prevented. A badge row that no

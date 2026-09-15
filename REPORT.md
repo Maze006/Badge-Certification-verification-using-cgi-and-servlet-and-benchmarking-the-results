@@ -26,13 +26,17 @@ experiment.
 
 ### Headline result
 
-> The servlet answers the same verification lookup **241× faster** (1.71 ms vs
-> 411.81 ms) and sustains **77× the throughput** (1,967 vs 25 requests/second at
-> 20 concurrent clients).
+> The servlet answers the same verification lookup **269× faster** (1.47 ms vs
+> 395.88 ms) and sustains **73× the throughput** (1,790 vs 24.6 requests/second
+> at 20 concurrent clients).
 >
-> Measurement of the CGI request shows why: **0.10% of it is the database lookup
-> the user asked for.** The other 99.9% is setup that the process throws away the
-> moment it answers.
+> Push to 40 concurrent clients and CGI does not merely stop improving — it
+> **goes backwards**, halving from 24.6 to 12.7 requests/second while its p95
+> response time reaches **4.07 seconds**.
+>
+> Measurement of the CGI request shows why: **0.13% of it is the database lookup
+> the user asked for.** The other 99.87% is setup that the process throws away
+> the moment it answers.
 
 ---
 
@@ -153,11 +157,11 @@ Rather than assert that process creation is expensive, each stage was measured
 
 | Stage | Cumulative | This step |
 |---|---|---|
-| 1. Process start (fork/exec + interpreter) | 59.6 ms | 59.61 ms |
-| 2. + stdlib imports | 112.2 ms | 52.55 ms |
-| 3. + `mysql.connector` import | 311.2 ms | **199.02 ms** |
-| 4. + connect and authenticate to MySQL | 414.7 ms | 103.55 ms |
-| 5. The indexed `SELECT` | 415.2 ms | **0.43 ms** |
+| 1. Process start (fork/exec + interpreter) | 81.3 ms | 81.27 ms |
+| 2. + stdlib imports | 131.4 ms | 50.16 ms |
+| 3. + `mysql.connector` import | 324.3 ms | **192.90 ms** |
+| 4. + connect and authenticate to MySQL | 368.8 ms | 44.47 ms |
+| 5. The indexed `SELECT` | 369.3 ms | **0.49 ms** |
 
 Two things stand out.
 
@@ -166,12 +170,14 @@ nearly half the request. It is also the most obviously wasteful: the same module
 are read, compiled and initialised from scratch for every employer who checks a
 badge.
 
-**The work the user actually asked for is 0.43 ms, or 0.10% of the request.** The
-remaining 414.7 ms is setup. The servlet pays that 414.7 ms once, at startup, and
-then answers each request with the 0.43 ms alone.
+**The work the user actually asked for is 0.49 ms, or 0.13% of the request.** The
+remaining 368.8 ms is setup. The servlet pays that 368.8 ms once, at startup, and
+then answers each request with the 0.49 ms alone.
 
-That the modelled 415.2 ms lands within 1% of the 411.81 ms measured end-to-end
-over HTTP is a good sign the breakdown accounts for the whole story.
+That the modelled 369.3 ms lands within 7% of the 395.88 ms measured end-to-end
+over HTTP is a good sign the breakdown accounts for the whole story. The residual
+is the part this model deliberately leaves out: Apache's own work accepting the
+connection, forking the handler and piping the response back.
 
 ---
 
@@ -190,40 +196,50 @@ work.
 
 | Implementation | Mean | Median | p95 | p99 | Min | Max | Throughput |
 |---|---|---|---|---|---|---|---|
-| Python CGI | 411.81 ms | 410.83 ms | 437.20 ms | 447.39 ms | 342.47 ms | 448.11 ms | 2.4 req/s |
-| Java Servlet | **1.71 ms** | 1.33 ms | 3.00 ms | 4.11 ms | 0.81 ms | 22.29 ms | **573.6 req/s** |
+| Python CGI | 395.88 ms | 396.52 ms | 411.19 ms | 417.59 ms | 292.44 ms | 418.63 ms | 2.5 req/s |
+| Java Servlet | **1.47 ms** | 1.19 ms | 2.09 ms | 5.41 ms | 0.83 ms | 20.83 ms | **666.0 req/s** |
 
 ### Concurrency sweep
 
 | Concurrent clients | CGI mean | Servlet mean | CGI p95 | Servlet p95 | CGI req/s | Servlet req/s | Speed-up |
 |---|---|---|---|---|---|---|---|
-| 1 | 411.62 ms | 1.43 ms | 433.14 ms | 2.01 ms | 2.4 | 684.7 | 288× |
-| 2 | 401.07 ms | 1.43 ms | 422.19 ms | 2.79 ms | 5.0 | 1358.0 | 280× |
-| 5 | 404.35 ms | 1.62 ms | 425.40 ms | 2.57 ms | 12.3 | 2897.9 | 249× |
-| 10 | 470.65 ms | 2.86 ms | 504.89 ms | 4.33 ms | 21.0 | 3104.9 | 164× |
-| 20 | 752.03 ms | 5.72 ms | 869.07 ms | 14.49 ms | 25.4 | 1966.9 | 131× |
+| 1 | 394.84 ms | 1.37 ms | 409.99 ms | 1.79 ms | 2.5 | 713.3 | 287× |
+| 2 | 395.20 ms | 1.49 ms | 412.82 ms | 1.78 ms | 5.1 | 1308.5 | 266× |
+| 5 | 427.43 ms | 1.77 ms | 462.54 ms | 2.18 ms | 11.6 | 2645.3 | 241× |
+| 10 | 482.44 ms | 2.67 ms | 593.37 ms | 4.73 ms | 20.1 | 3240.3 | 181× |
+| 20 | 763.72 ms | 4.78 ms | 982.56 ms | 11.30 ms | 24.6 | 1789.7 | 160× |
+| 40 | **2590.89 ms** | 4.66 ms | **4066.65 ms** | 9.37 ms | **12.7** | 1315.6 | 556× |
 
 ![CGI vs Servlet: response time and throughput against concurrency](bench/chart.png)
 
 ### Reading the curves
 
-**CGI throughput saturates at about 25 requests/second.** It climbs 2.4 → 5.0 →
-12.3 → 21.0 → 25.4 and then flattens. The machine cannot create processes any
-faster than that, so beyond roughly 10 concurrent clients extra load does not buy
-extra throughput — it only buys queueing. Latency confirms it: flat near 400 ms up
-to 5 clients, then 470 ms at 10 and 752 ms at 20. Past saturation every additional
-employer checking a badge simply waits longer.
+**CGI saturates at about 25 requests/second, then collapses.** Throughput climbs
+2.5 → 5.1 → 11.6 → 20.1 → 24.6 as concurrency rises to 20, and then *falls to
+12.7* at 40 clients. That is the important row in the table. Doubling the offered
+load did not merely fail to buy more work — it **halved the work delivered**,
+while mean latency rose from 764 ms to 2,591 ms and p95 reached 4.07 seconds.
 
-**The servlet scales until the client runs out of steam.** 685 → 1,358 → 2,898 →
-3,105 req/s, with latency still only 2.86 ms at 10 clients. The dip to 1,967 req/s
-at 20 concurrent clients is the Python load generator itself becoming the
-bottleneck, not the servlet — which means **the servlet figures are conservative
-and the real gap is wider than shown**.
+Past saturation the machine is spending more of itself creating and destroying
+processes than answering with them. Every additional employer checking a badge
+makes the service worse for everyone already waiting. A system that degrades
+*faster* than the load that caused it is not merely slow, it is unstable: a
+modest burst can push it into a state it will not recover from while the burst
+lasts.
 
-Note that the speed-up *ratio* shrinks (288× → 131×) while the absolute gap
-*widens* (410 ms → 746 ms). The ratio falls only because the servlet's own latency
-grows off a very small base; in the terms a user experiences, the two are pulling
-further apart, not closer.
+**The servlet scales until the client runs out of steam.** 713 → 1,308 → 2,645 →
+3,240 req/s, with latency still only 2.67 ms at 10 clients. The dips at 20 and 40
+concurrent clients are the Python load generator itself becoming the bottleneck,
+not the servlet — which means **the servlet figures are conservative and the real
+gap is wider than shown**. Its latency over the whole sweep moves only from
+1.37 ms to 4.66 ms.
+
+Note that the speed-up *ratio* falls from 287× to 160× across most of the sweep
+while the absolute gap *widens* (393 ms → 759 ms). The ratio shrinks only because
+the servlet's own latency grows off a very small base; in the terms a user
+experiences, the two are pulling further apart, not closer. At 40 clients the
+ratio jumps to 556× — not because the servlet improved, but because CGI fell
+apart.
 
 ---
 
@@ -235,12 +251,17 @@ spiky**. A graduating cohort puts a few thousand badge links into CVs; those lin
 get clicked by employers, recruiters and screening tools, in bursts nobody
 schedules.
 
-At 25 requests/second, the CGI implementation supports roughly **2.1 million
+At 24.6 requests/second, the CGI implementation supports roughly **2.1 million
 verifications per day at absolute saturation** — while already making every
 employer wait three quarters of a second. Sustained, that is a service running
 permanently at its ceiling. The servlet handles the same load at under 1% of
-capacity, and its measured 3,105 req/s ceiling is a limit of the test client, not
+capacity, and its measured 3,240 req/s ceiling is a limit of the test client, not
 of the server.
+
+The collapse at 40 clients is the part a platform operator would actually fear.
+Bursty public traffic does not politely stop at the saturation point; it
+overshoots. And CGI's response to overshoot is not a plateau but a halving of
+throughput with multi-second waits — precisely when the most people are looking.
 
 The mechanism behind the difference generalises past this project. Anything a
 request handler could usefully keep — a connection pool, a warmed cache, a
@@ -343,18 +364,23 @@ around 2 ms against the servlet and 350 ms against CGI.
 Stated plainly, because they bound what the numbers support.
 
 - **The client is the servlet's ceiling.** The Python load generator saturates
-  before the servlet does, so 3,105 req/s is a floor on servlet capacity, not a
+  before the servlet does, so 3,240 req/s is a floor on servlet capacity, not a
   measurement of it. A JMeter or `wrk` run would show a larger gap.
 - **Everything is on one machine.** Client, both servers and MySQL share a CPU, so
   they compete. Real deployments separate them.
 - **CGI in Python is not the fastest possible CGI.** A compiled C CGI binary would
-  avoid the 199 ms interpreter-import cost and land far closer to the servlet.
-  What survives that objection is the process-creation floor: 59.6 ms per request
-  on this machine, still 35× the servlet's total response time, and unavoidable
+  avoid the 193 ms interpreter-import cost and land far closer to the servlet.
+  What survives that objection is the process-creation floor: 81.3 ms per request
+  on this machine, still 55× the servlet's total response time, and unavoidable
   in any CGI implementation in any language.
-- **The concurrency sweep stops at 20 clients** to avoid thrashing the machine
-  with concurrent `python.exe` processes. CGI has already saturated by then, so
+- **The concurrency sweep stops at 40 clients** to avoid thrashing the machine
+  with concurrent `python.exe` processes. CGI has already collapsed by then, so
   higher levels would only widen the gap.
+- **Run-to-run variance is real.** Repeated runs of this benchmark put the
+  sequential speed-up between roughly 140× and 290×, because both servers, the
+  client and MySQL share one desktop CPU alongside whatever else is running.
+  Every figure quoted in this report comes from a single run, recorded in
+  `bench/results.csv`, rather than being assembled from several.
 - **Codes are 48 bits of digest.** Ample against collision for a project of this
   size and enforced by a unique index, but a production system would use a longer
   code and rotate the signing secret.
@@ -364,11 +390,12 @@ Stated plainly, because they bound what the numbers support.
 ## 11. Conclusion
 
 The two implementations answer the same question with the same SQL against the
-same database and return the same bytes. The servlet does it 241× faster and
-absorbs 77× the concurrent load.
+same database and return the same bytes. The servlet does it 269× faster and
+absorbs 73× the concurrent load — and where CGI collapses under overshoot, the
+servlet does not notice.
 
 The measured cost breakdown explains the whole difference without hand-waving:
-**0.10% of a CGI verification request is the lookup; 99.9% is rebuilding context
+**0.13% of a CGI verification request is the lookup; 99.87% is rebuilding context
 that the previous request already had and threw away.** The servlet builds that
 context once, when the application starts, and every request afterwards is very
 nearly just the work.
