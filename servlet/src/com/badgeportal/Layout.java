@@ -24,7 +24,8 @@ public final class Layout {
      * @param ctx       the context path, from request.getContextPath().
      *
      * Every URL here is built from ctx rather than written relative.
-     * That is not cosmetic. The wallet lives at /badgeportal/wallet but
+     * That is not cosmetic. Pages sit at different depths -- the verify
+     * page at /badgeportal/verify.html but
      * the dashboards live at /badgeportal/student/dashboard, one segment
      * deeper, so a relative "css/style.css" resolves differently on the
      * two pages and 404s on one of them. Absolute-from-context URLs
@@ -63,17 +64,33 @@ public final class Layout {
           .append("</div></header>")
           .append("<nav class='nav-tabs'><ul>");
 
+        // Navigation is what each role is actually allowed to do.
+        //
+        //   student  their dashboard, and nothing else. They upload
+        //            badges and read their own; they have no business
+        //            browsing the cohort, and they do not verify badges.
+        //   admin    the full set, including the student directory.
+        //   visitor  the public pages only.
+        //
+        // This is presentation, not protection -- the wallet is behind
+        // AuthFilter regardless of what the nav shows. Hiding a link is
+        // never a security control, only a courtesy.
         if (signedIn) {
             sb.append(tab(ctx + Auth.homeFor(account), "dashboard", activeTab));
+            if (account.isAdmin()) {
+                sb.append(tab(ctx + "/admin/wallets",  "wallets",   activeTab))
+                  .append(tab(ctx + "/verify.html",    "verify",    activeTab))
+                  .append(tab(ctx + "/benchmark.html", "benchmark", activeTab))
+                  .append(tab(ctx + "/health.html",    "health",    activeTab));
+            }
         } else {
-            sb.append(tab(ctx + "/index.html", "home", activeTab));
+            sb.append(tab(ctx + "/index.html",     "home",      activeTab))
+              .append(tab(ctx + "/verify.html",    "verify",    activeTab))
+              .append(tab(ctx + "/benchmark.html", "benchmark", activeTab))
+              .append(tab(ctx + "/health.html",    "health",    activeTab));
         }
 
-        sb.append(tab(ctx + "/wallet",         "wallets",   activeTab))
-          .append(tab(ctx + "/verify.html",    "verify",    activeTab))
-          .append(tab(ctx + "/benchmark.html", "benchmark", activeTab))
-          .append(tab(ctx + "/health.html",    "health",    activeTab))
-          .append("</ul></nav>");
+        sb.append("</ul></nav>");
         return sb.toString();
     }
 

@@ -13,10 +13,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Student Wallet -- the student-facing page.
+ * Student wallets -- the administrator's view of the cohort.
  *
- *     GET /badgeportal/wallet              -> pick a student
- *     GET /badgeportal/wallet?studentId=3  -> that student's badges
+ *     GET /badgeportal/admin/wallets              -> pick a student
+ *     GET /badgeportal/admin/wallets?studentId=3  -> that student's badges
+ *
+ * ADMIN ONLY. This lists every student and opens any wallet, so it
+ * exposes the whole cohort. It used to sit at /wallet with no
+ * protection at all. A student reads their own badges from their
+ * dashboard instead, scoped to their session.
  *
  * Shows every badge the student holds with its verification code and a
  * shareable verify link, plus the modules they have completed but not
@@ -78,15 +83,16 @@ public class WalletServlet extends HttpServlet {
         Connection conn = null;
         try {
             conn = Db.borrow();
+            Accounts.Account viewer = Auth.current(req);
             if (studentId <= 0) {
-                renderPicker(out, conn, req.getContextPath());
+                renderPicker(out, conn, req.getContextPath(), viewer);
             } else {
-                renderWallet(out, conn, studentId, req.getContextPath());
+                renderWallet(out, conn, studentId, req.getContextPath(), viewer);
             }
         } catch (SQLException e) {
             log("[badgeportal] wallet failed for student " + studentId, e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print(head("Wallet unavailable", req.getContextPath())
+            out.print(head("Wallet unavailable", req.getContextPath(), Auth.current(req))
                     + "<main class='wrap'><div class='card empty'>"
                     + "<h2>Wallet temporarily unavailable</h2>"
                     + "<p>The database could not be reached. Check that MySQL is "
@@ -98,9 +104,9 @@ public class WalletServlet extends HttpServlet {
     }
 
     // -----------------------------------------------------------------
-    private void renderPicker(PrintWriter out, Connection conn, String ctx)
-            throws SQLException {
-        out.print(head("Student wallets", ctx));
+    private void renderPicker(PrintWriter out, Connection conn, String ctx,
+                              Accounts.Account viewer) throws SQLException {
+        out.print(head("Student wallets", ctx, viewer));
         out.print("<main class='wrap'>");
         out.print("<header class='page-head'><h1>Student wallets</h1>"
                 + "<p class='sub'>Pick a student to open their skill-badge wallet.</p>"
@@ -131,7 +137,8 @@ public class WalletServlet extends HttpServlet {
 
     // -----------------------------------------------------------------
     private void renderWallet(PrintWriter out, Connection conn, int studentId,
-                              String ctx) throws SQLException {
+                              String ctx, Accounts.Account viewer)
+            throws SQLException {
 
         String name = null, email = null, enrolled = null;
         PreparedStatement ps = conn.prepareStatement(SQL_STUDENT);
@@ -152,18 +159,18 @@ public class WalletServlet extends HttpServlet {
         }
 
         if (name == null) {
-            out.print(head("Unknown student", ctx)
+            out.print(head("Unknown student", ctx, viewer)
                     + "<main class='wrap'><div class='card empty'>"
                     + "<h2>No such student</h2><p>There is no student with id "
                     + studentId + ".</p><p><a class='btn' href='" + ctx
-                    + "/wallet'>Back to the student list</a></p></div></main>" + foot());
+                    + "/admin/wallets'>Back to the student list</a></p></div></main>" + foot());
             return;
         }
 
-        out.print(head(name + " - skill badge wallet", ctx));
+        out.print(head(name + " - skill badge wallet", ctx, viewer));
         out.print("<main class='wrap'>");
         out.print("<header class='page-head'>"
-                + "<p class='eyebrow'><a href='" + ctx + "/wallet'>&larr; All students</a></p>"
+                + "<p class='eyebrow'><a href='" + ctx + "/admin/wallets'>&larr; All students</a></p>"
                 + "<h1>" + Json.html(name) + "</h1>"
                 + "<p class='sub'>" + Json.html(email) + " &middot; enrolled " + enrolled
                 + " &middot; student #" + studentId + "</p></header>");
@@ -311,8 +318,14 @@ public class WalletServlet extends HttpServlet {
              : "Issued by " + issuer + ", verified by an administrator";
     }
 
-    static String head(String title, String ctx) {
-        return Layout.head(title, "wallets", ctx);
+    /**
+     * Only an administrator can reach this page, so it renders the
+     * signed-in chrome: the admin nav and the session bar. Rendering the
+     * public nav here would show a visitor's menu to someone who is
+     * plainly not a visitor.
+     */
+    static String head(String title, String ctx, Accounts.Account viewer) {
+        return Layout.headSignedIn(title, "wallets", viewer, ctx);
     }
 
     static String foot() {

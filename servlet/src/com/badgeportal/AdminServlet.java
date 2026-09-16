@@ -109,7 +109,7 @@ public class AdminServlet extends HttpServlet {
            .append("<div class='tile'><h3>Badges issued</h3>")
            .append("<p class='stat-number'>").append(badges).append("</p>")
            .append("<p>").append(approved).append(" from approved claims.</p></div>")
-           .append("<a class='tile' href='").append(ctx).append("/wallet'>")
+           .append("<a class='tile' href='").append(ctx).append("/admin/wallets'>")
            .append("<h3>Student wallets &rarr;</h3>")
            .append("<p>Browse any student and the badges they hold.</p></a>")
            .append("</div>");

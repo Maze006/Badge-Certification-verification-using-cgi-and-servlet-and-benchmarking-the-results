@@ -492,6 +492,19 @@ dl.facts dd.mono { font-size: 13px; }
 
 .tile p { margin: 0; color: var(--ink-soft); font-size: 13.5px; }
 
+/* The small line at the foot of a role tile: "Sign in required" or
+   "No account needed". Says what the choice costs before it is made. */
+.tile-foot {
+  margin-top: 12px !important;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+  font-size: 11px !important;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-muted) !important;
+}
+
 /* --- benchmark bars ------------------------------------------------- */
 .bench { display: grid; gap: 16px; }
 

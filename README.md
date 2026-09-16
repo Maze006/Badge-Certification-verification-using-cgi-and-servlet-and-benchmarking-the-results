@@ -448,11 +448,11 @@ verify, health.
 |---|---|---|
 | `http://localhost:8080/badgeportal/` | `index.html` | Landing page — tap anywhere to begin |
 | `http://localhost:8080/badgeportal/benchmark.html` | static | The CGI vs servlet comparison, with the bars |
-| `http://localhost:8080/badgeportal/wallet` | `WalletServlet` | Pick a student |
-| `http://localhost:8080/badgeportal/wallet?studentId=1` | `WalletServlet` | That student's badges, with codes and verify links; issues badges for unclaimed modules |
+| `http://localhost:8080/badgeportal/admin/wallets` | `WalletServlet` | **Admin only** — the student directory |
+| `http://localhost:8080/badgeportal/admin/wallets?studentId=1` | `WalletServlet` | **Admin only** — that student's badges and codes |
 | `http://localhost:8080/badgeportal/verify.html` | static | Public verify page — takes only a code, and answers it with **either** implementation so you can watch the round-trip time change |
 | `http://localhost:8080/badgeportal/health.html` | static | Pool statistics rendered as a JSON code block |
-| `http://localhost:8080/badgeportal/role.html` | static | Choose Admin or Student |
+| `http://localhost:8080/badgeportal/role.html` | static | Choose Admin, Student, or Verify a badge |
 | `http://localhost:8080/badgeportal/login?role=student` | `LoginServlet` | Role-aware sign-in |
 | `http://localhost:8080/badgeportal/student/dashboard` | `StudentServlet` | **Requires a student session** |
 | `http://localhost:8080/badgeportal/admin/dashboard` | `AdminServlet` | **Requires an admin session** |

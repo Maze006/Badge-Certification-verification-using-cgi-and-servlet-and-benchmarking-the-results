@@ -105,7 +105,17 @@
   </servlet-mapping>
 
   <!-- ================================================================
-       Student wallet (dynamic HTML rather than JSON)
+       Student wallets (dynamic HTML rather than JSON).
+
+       ADMIN ONLY. This page lists every student and opens any of their
+       wallets, which means names, emails and verification codes for the
+       whole cohort. It was previously mapped at /wallet with no
+       protection at all, so anyone could browse the lot.
+
+       Mapping it under /admin/ puts it behind the existing AuthFilter
+       with no new filter logic: the URL itself now carries the access
+       rule. A student reads their own badges on their dashboard, which
+       is scoped to their session and cannot be pointed at anyone else.
        ================================================================ -->
   <servlet>
     <servlet-name>WalletServlet</servlet-name>
@@ -113,7 +123,7 @@
   </servlet>
   <servlet-mapping>
     <servlet-name>WalletServlet</servlet-name>
-    <url-pattern>/wallet</url-pattern>
+    <url-pattern>/admin/wallets</url-pattern>
   </servlet-mapping>
 
   <!-- ================================================================

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Choose your role</title>
+<title>Choose what to do</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -19,7 +19,6 @@
 <nav class="nav-tabs">
   <ul>
     <li><a href="index.html">home</a></li>
-    <li><a href="wallet">wallets</a></li>
     <li><a href="verify.html">verify</a></li>
     <li><a href="benchmark.html">benchmark</a></li>
     <li><a href="health.html">health</a></li>
@@ -29,10 +28,11 @@
 <main class="wrap">
 
   <header class="page-head">
-    <h1>Who are you signing in as?</h1>
+    <h1>What would you like to do?</h1>
     <p class="sub">
-      Accounts are separate. An administrator cannot sign in as a student,
-      or the other way around.
+      Administrator and student accounts are separate &mdash; an administrator
+      cannot sign in as a student, or the other way around. Checking a badge
+      needs no account at all.
     </p>
   </header>
 
@@ -40,26 +40,39 @@
 
     <a class="tile" href="login?role=admin">
       <h3>Admin &rarr;</h3>
-      <p>Review and verify the badges students have submitted.</p>
+      <p>Review what students have submitted, verify the evidence, and issue
+         the badge. Browse any student&rsquo;s wallet.</p>
+      <p class="tile-foot">Sign in required</p>
     </a>
 
     <a class="tile" href="login?role=student">
       <h3>Student &rarr;</h3>
-      <p>Upload your skill-badge certification, and track the badges
-         you have earned.</p>
+      <p>Upload your skill-badge certification and track the badges you have
+         earned.</p>
+      <p class="tile-foot">Sign in required</p>
+    </a>
+
+    <a class="tile" href="verify.html">
+      <h3>Verify a badge &rarr;</h3>
+      <p>Paste a verification code and find out whether the badge is genuine.
+         This is the check an employer would run.</p>
+      <p class="tile-foot">No account needed</p>
     </a>
 
   </div>
 
-  <h2 class="section">No account needed</h2>
+  <h2 class="section">Why verification is open to everyone</h2>
   <div class="card">
     <p style="margin-top:0">
-      Checking whether a badge is genuine does not require signing in.
-      That is the point of a verification code &mdash; an employer holding
-      one should never need an account here.
+      A verification code only means something if the person holding it can
+      check it. An employer reading a CV has no account here and should never
+      need one &mdash; so the lookup is public by design, for both
+      implementations.
     </p>
     <p style="margin-bottom:0">
-      <a class="btn ghost" href="verify.html">Verify a badge &rarr;</a>
+      What is <em>not</em> public is everything else: a student sees only their
+      own badges, and only an administrator can browse the full directory of
+      students.
     </p>
   </div>
 
