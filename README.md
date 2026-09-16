@@ -457,6 +457,7 @@ verify, health.
 | `http://localhost:8080/badgeportal/student/dashboard` | `StudentServlet` | **Requires a student session** |
 | `http://localhost:8080/badgeportal/admin/dashboard` | `AdminServlet` | **Requires an admin session** |
 | `http://localhost:8080/badgeportal/files/evidence?claim=N` | `EvidenceServlet` | Uploaded certificate — owner or admin only |
+| `POST /badgeportal/admin/review` | `ReviewServlet` | Approve or reject a claim; approval mints the badge |
 
 And the endpoints behind them:
 

@@ -13,6 +13,17 @@ endpoints return the same JSON for the same code.
 
 import hashlib
 
+# Stand-ins used when a badge came from an approved claim rather than a
+# course module. A claim badge has no module, so there is no module id
+# to hash and no two-letter module prefix to print.
+#
+# These MUST match BadgeCode.CLAIM_PREFIX and BadgeCode.NO_MODULE on the
+# Java side. Change either and every claim-issued badge stops verifying,
+# because the digest recomputed here would no longer match the digest
+# computed by the issuer.
+CLAIM_PREFIX = "CB"
+NO_MODULE = 0
+
 
 def payload(student_id, module_id, issued_at_ms, secret):
     """The canonical string that gets hashed."""

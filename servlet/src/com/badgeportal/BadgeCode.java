@@ -28,6 +28,23 @@ import java.security.NoSuchAlgorithmException;
  */
 public final class BadgeCode {
 
+    /**
+     * Stand-ins used when a badge came from an approved claim rather
+     * than a course module.
+     *
+     * A claim badge has no module, so there is no module id to hash and
+     * no two-letter module prefix to print. These two constants fill
+     * both gaps, and are used identically by the issuer
+     * (ReviewServlet), the servlet verifier and cgi/verify.py. Change
+     * either one and every claim-issued badge stops verifying, because
+     * the digest recomputed at verification would no longer match the
+     * digest computed at issue.
+     *
+     * Mirrored in cgi/badgecode.py.
+     */
+    public static final String CLAIM_PREFIX = "CB";
+    public static final int    NO_MODULE    = 0;
+
     private BadgeCode() { }
 
     /** Builds the canonical string that gets hashed. */

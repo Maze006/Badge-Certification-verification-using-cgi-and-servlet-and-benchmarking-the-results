@@ -195,6 +195,17 @@
     <url-pattern>/student/claim</url-pattern>
   </servlet-mapping>
 
+  <!-- Approving or rejecting a claim. POST only: issuing a credential
+       must never be reachable by following a link. -->
+  <servlet>
+    <servlet-name>ReviewServlet</servlet-name>
+    <servlet-class>com.badgeportal.ReviewServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ReviewServlet</servlet-name>
+    <url-pattern>/admin/review</url-pattern>
+  </servlet-mapping>
+
   <servlet>
     <servlet-name>EvidenceServlet</servlet-name>
     <servlet-class>com.badgeportal.EvidenceServlet</servlet-class>

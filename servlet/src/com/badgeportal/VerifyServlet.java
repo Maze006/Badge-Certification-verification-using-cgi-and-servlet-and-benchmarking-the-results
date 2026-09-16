@@ -35,14 +35,29 @@ public class VerifyServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * LEFT JOIN on modules and badge_claims, not INNER.
+     *
+     * A badge issued from an approved claim has no module_id, so an
+     * inner join would fail to match it at all and this endpoint would
+     * answer NOT_FOUND for a badge that genuinely exists -- the worst
+     * possible failure for a verification service.
+     *
+     * Any change here must be mirrored exactly in cgi/verify.py. The
+     * two implementations are held to identical output by the parity
+     * check in bench/benchmark.py, which samples codes at random and
+     * will therefore pick up claim-issued badges once they exist.
+     */
     private static final String SQL =
         "SELECT b.badge_id, b.student_id, b.module_id, b.verification_code, "
       + "       b.tier, b.score, b.issued_at_ms, b.revoked, "
       + "       s.name AS student_name, s.email AS student_email, "
-      + "       m.title AS module_title, m.unit AS module_unit, m.code_prefix "
+      + "       m.title AS module_title, m.unit AS module_unit, m.code_prefix, "
+      + "       c.title AS claim_title, c.issuer AS claim_issuer "
       + "FROM badges b "
-      + "JOIN students s ON s.student_id = b.student_id "
-      + "JOIN modules  m ON m.module_id  = b.module_id "
+      + "JOIN      students     s ON s.student_id = b.student_id "
+      + "LEFT JOIN modules      m ON m.module_id  = b.module_id "
+      + "LEFT JOIN badge_claims c ON c.claim_id   = b.claim_id "
       + "WHERE b.verification_code = ?";
 
     /**
@@ -108,11 +123,22 @@ public class VerifyServlet extends HttpServlet {
                     }
 
                     int    studentId  = rs.getInt("student_id");
-                    int    moduleId   = rs.getInt("module_id");
                     long   issuedAtMs = rs.getLong("issued_at_ms");
-                    String prefix     = rs.getString("code_prefix");
                     String stored     = rs.getString("verification_code");
                     boolean revoked   = rs.getInt("revoked") == 1;
+
+                    // A claim-issued badge belongs to no module, so
+                    // module_id is NULL and there is no code_prefix to
+                    // read. Both fall back to fixed values that the
+                    // issuer used when it built the code, and that
+                    // cgi/verify.py uses too. getInt() already returns
+                    // 0 for NULL; saying so explicitly keeps the two
+                    // implementations obviously aligned.
+                    int moduleId = rs.getInt("module_id");
+                    if (rs.wasNull()) moduleId = BadgeCode.NO_MODULE;
+
+                    String prefix = rs.getString("code_prefix");
+                    if (prefix == null) prefix = BadgeCode.CLAIM_PREFIX;
 
                     // ---- the tamper-evident check -----------------------
                     // Recompute the code the badge row SHOULD carry, from
@@ -155,10 +181,30 @@ public class VerifyServlet extends HttpServlet {
                         .put("email", rs.getString("student_email"))
                         .end();
 
+                    // The response shape stays the same whichever way
+                    // the badge was issued. A claim badge describes
+                    // itself through the claim it came from, so an
+                    // employer sees "Python for Everybody / Issued by
+                    // Coursera" in the same place they would see a
+                    // module and its unit. Keeping one shape means
+                    // verify.html needs no special case and the parity
+                    // check keeps comparing like with like.
+                    String moduleTitle = rs.getString("module_title");
+                    String moduleUnit  = rs.getString("module_unit");
+                    if (moduleTitle == null) {
+                        moduleTitle = rs.getString("claim_title");
+                        String issuer = rs.getString("claim_issuer");
+                        moduleUnit = (issuer == null || issuer.isEmpty())
+                            ? "Verified by an administrator"
+                            : "Issued by " + issuer + ", verified by an administrator";
+                    }
+                    if (moduleTitle == null) moduleTitle = "Skill badge";
+                    if (moduleUnit == null)  moduleUnit  = "";
+
                     String module = new Json()
                         .put("id", moduleId)
-                        .put("title", rs.getString("module_title"))
-                        .put("unit", rs.getString("module_unit"))
+                        .put("title", moduleTitle)
+                        .put("unit", moduleUnit)
                         .end();
 
                     out.print(new Json()

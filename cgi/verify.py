@@ -64,14 +64,25 @@ sys.path.insert(0, os.path.join(_HERE, "pylib"))
 
 _T0 = time.perf_counter()
 
+# LEFT JOIN on modules and badge_claims, not INNER. A badge issued from
+# an approved claim has no module_id, so an inner join would fail to
+# match it and this endpoint would answer NOT_FOUND for a badge that
+# genuinely exists.
+#
+# This query and everything built from it below must stay identical to
+# VerifyServlet.java. bench/benchmark.py samples codes at random and
+# aborts if the two implementations disagree, so any drift here stops
+# the benchmark rather than quietly skewing it.
 SQL = (
     "SELECT b.badge_id, b.student_id, b.module_id, b.verification_code, "
     "       b.tier, b.score, b.issued_at_ms, b.revoked, "
     "       s.name AS student_name, s.email AS student_email, "
-    "       m.title AS module_title, m.unit AS module_unit, m.code_prefix "
+    "       m.title AS module_title, m.unit AS module_unit, m.code_prefix, "
+    "       c.title AS claim_title, c.issuer AS claim_issuer "
     "FROM badges b "
-    "JOIN students s ON s.student_id = b.student_id "
-    "JOIN modules  m ON m.module_id  = b.module_id "
+    "JOIN      students     s ON s.student_id = b.student_id "
+    "LEFT JOIN modules      m ON m.module_id  = b.module_id "
+    "LEFT JOIN badge_claims c ON c.claim_id   = b.claim_id "
     "WHERE b.verification_code = %s"
 )
 
@@ -171,10 +182,14 @@ def main():
             return
 
         student_id = int(row["student_id"])
-        module_id = int(row["module_id"])
         issued_at_ms = int(row["issued_at_ms"])
-        prefix = row["code_prefix"]
         stored = row["verification_code"]
+
+        # A claim badge has no module and no module prefix; both fall
+        # back to the shared constants the issuer used.
+        module_id = (badgecode.NO_MODULE if row["module_id"] is None
+                     else int(row["module_id"]))
+        prefix = row["code_prefix"] or badgecode.CLAIM_PREFIX
 
         # ---- the tamper-evident check ------------------------------
         # Recompute the code this badge row SHOULD carry, from the row
@@ -203,6 +218,28 @@ def main():
             })
             return
 
+        # The response shape stays the same whichever way the badge was
+        # issued: a claim badge describes itself through the claim it
+        # came from, so an employer sees the certificate title and its
+        # issuer where they would otherwise see a module and its unit.
+        module_title = row["module_title"]
+        module_unit = row["module_unit"]
+        if module_title is None:
+            module_title = row["claim_title"]
+            issuer = row["claim_issuer"]
+            module_unit = ("Verified by an administrator" if not issuer
+                           else "Issued by %s, verified by an administrator" % issuer)
+        if module_title is None:
+            module_title = "Skill badge"
+        if module_unit is None:
+            module_unit = ""
+
+        module = {
+            "id": module_id,
+            "title": module_title,
+            "unit": module_unit,
+        }
+
         # Key order here matches com.badgeportal.Json in VerifyServlet,
         # so the two responses compare equal field for field.
         respond(200, {
@@ -214,11 +251,7 @@ def main():
                 "name": row["student_name"],
                 "email": row["student_email"],
             },
-            "module": {
-                "id": module_id,
-                "title": row["module_title"],
-                "unit": row["module_unit"],
-            },
+            "module": module,
             "tier": row["tier"],
             "score": float(row["score"]),
             "issuedAt": utc(issued_at_ms),

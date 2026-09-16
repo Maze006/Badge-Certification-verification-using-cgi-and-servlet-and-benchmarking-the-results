@@ -34,10 +34,18 @@ public class WalletServlet extends HttpServlet {
     private static final String SQL_STUDENT =
         "SELECT name, email, enrolled_on FROM students WHERE student_id = ?";
 
+    /**
+     * LEFT JOIN, not INNER. A badge issued from an approved claim has no
+     * module_id, and an inner join would silently drop it from the
+     * wallet -- the page whose entire job is to show every badge a
+     * student holds.
+     */
     private static final String SQL_BADGES =
         "SELECT b.verification_code, b.tier, b.score, b.issued_at_ms, b.revoked, "
-      + "       m.title, m.unit "
-      + "FROM badges b JOIN modules m ON m.module_id = b.module_id "
+      + "       m.title, m.unit, c.title AS claim_title, c.issuer AS claim_issuer "
+      + "FROM badges b "
+      + "LEFT JOIN modules      m ON m.module_id = b.module_id "
+      + "LEFT JOIN badge_claims c ON c.claim_id  = b.claim_id "
       + "WHERE b.student_id = ? ORDER BY b.issued_at_ms DESC";
 
     private static final String SQL_UNCLAIMED =
@@ -177,8 +185,8 @@ public class WalletServlet extends HttpServlet {
                           .append(revoked ? " revoked" : "").append("'>")
                           .append("<div class='medal'>").append(tier.charAt(0)).append("</div>")
                           .append("<div class='badge-body'>")
-                          .append("<h3>").append(Json.html(rs.getString("title"))).append("</h3>")
-                          .append("<p class='unit'>").append(Json.html(rs.getString("unit")))
+                          .append("<h3>").append(Json.html(badgeTitle(rs))).append("</h3>")
+                          .append("<p class='unit'>").append(Json.html(badgeSubtitle(rs)))
                           .append("</p>")
                           .append("<p class='meta'><span class='pill'>").append(tier)
                           .append("</span> score ").append(rs.getBigDecimal("score"))
@@ -281,6 +289,28 @@ public class WalletServlet extends HttpServlet {
      * private copy while it was the only server-rendered page; that did
      * not survive the arrival of four more.
      */
+    /**
+     * A module badge names its module; a claim badge names the claim it
+     * came from. Same shape either way, so the wallet does not need to
+     * know which kind it is rendering.
+     */
+    private static String badgeTitle(ResultSet rs) throws SQLException {
+        String t = rs.getString("title");
+        if (t == null) t = rs.getString("claim_title");
+        return (t == null) ? "Skill badge" : t;
+    }
+
+    private static String badgeSubtitle(ResultSet rs) throws SQLException {
+        if (rs.getString("title") != null) {
+            String unit = rs.getString("unit");
+            return (unit == null) ? "" : unit;
+        }
+        String issuer = rs.getString("claim_issuer");
+        return (issuer == null || issuer.isEmpty())
+             ? "Verified by an administrator"
+             : "Issued by " + issuer + ", verified by an administrator";
+    }
+
     static String head(String title, String ctx) {
         return Layout.head(title, "wallets", ctx);
     }
