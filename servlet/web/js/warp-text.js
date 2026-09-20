@@ -210,7 +210,21 @@
     at this viewport -- so asking it keeps the warped text identical in
     size and position to the text it replaces.
   */
-  function rasterise(el, root, width, height, dpr, ink) {
+  /*
+    Rasterises every [data-warp] element into one canvas, each drawn at
+    its own position with its own font, measured against the container
+    the WebGL canvas covers.
+
+    One texture rather than one per element: the shader warps a single
+    image, so the headline, the cue and the footer links all bend
+    through the same piece of glass and stay visually of a piece.
+
+    Fonts and geometry are read live from the DOM, which means whatever
+    the CSS clamp() resolved to at this viewport is what gets drawn. Ink
+    colours are passed in, captured before any element was made
+    transparent -- see the note in init().
+  */
+  function rasteriseAll(targets, root, width, height, dpr, inks) {
     var canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.floor(width * dpr));
     canvas.height = Math.max(1, Math.floor(height * dpr));
@@ -218,58 +232,69 @@
     var ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    var cs = window.getComputedStyle(el);
-    var fontSize = parseFloat(cs.fontSize) || 96;
-    var family = cs.fontFamily || "serif";
-    var weight = cs.fontWeight || "500";
-    var style = cs.fontStyle || "normal";
-    var tracking = cs.letterSpacing === "normal" ? 0 : (parseFloat(cs.letterSpacing) || 0);
-    var leading = parseFloat(cs.lineHeight);
-    if (!isFinite(leading)) leading = fontSize * 0.92;
-
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    // The ink colour is passed in, never read from the element here.
-    // This function rasterises the very element that upload() then
-    // makes transparent, so re-reading cs.color on any later pass --
-    // a resize, or fonts.ready firing -- would draw the heading in
-    // transparent ink and blank the canvas.
-    ctx.fillStyle = ink || "#000";
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.font = style + " " + weight + " " + fontSize + "px " + family;
 
-    var lines = linesOf(el);
-    if (!lines.length) return null;
-
-    // Draw where the heading actually sits, measured against the
-    // container the canvas covers. The original centred its text in the
-    // canvas, which is wrong here: this heading is left-aligned and its
-    // inset comes from padding on the container, not on the heading, so
-    // centring (or trusting the heading's own padding) pushes the text
-    // off the left edge. Measuring both boxes is immune to wherever the
-    // spacing happens to be declared.
-    var box = el.getBoundingClientRect();
     var frame = root.getBoundingClientRect();
-    var left = box.left - frame.left;
-    var top = box.top - frame.top;
+    var drewSomething = false;
 
-    // textBaseline is "middle", so line i is centred half a leading
-    // down from the top of its own line box.
-    for (var i = 0; i < lines.length; i++) {
-      drawLine(ctx, lines[i], left, top + leading * (i + 0.5), tracking);
+    for (var t = 0; t < targets.length; t++) {
+      var el = targets[t];
+      var lines = linesOf(el);
+      if (!lines.length) continue;
+
+      var box = el.getBoundingClientRect();
+      if (box.width <= 0 || box.height <= 0) continue;
+
+      var cs = window.getComputedStyle(el);
+      var fontSize = parseFloat(cs.fontSize) || 16;
+      var tracking = cs.letterSpacing === "normal"
+        ? 0 : (parseFloat(cs.letterSpacing) || 0);
+      var leading = parseFloat(cs.lineHeight);
+      if (!isFinite(leading)) leading = fontSize * 1.2;
+
+      ctx.font = (cs.fontStyle || "normal") + " " + (cs.fontWeight || "400")
+               + " " + fontSize + "px " + (cs.fontFamily || "serif");
+      ctx.fillStyle = inks[t] || "#000";
+
+      // Position is measured, never assumed. The landing inset comes
+      // from padding on the container rather than on these elements, so
+      // centring in the canvas -- as the original component did -- puts
+      // the first line off the left edge. Measuring both boxes is
+      // immune to wherever the spacing happens to be declared.
+      var left = box.left - frame.left;
+      var top = box.top - frame.top;
+
+      for (var i = 0; i < lines.length; i++) {
+        // A single line is centred in its own box, which is reliable
+        // whatever the line-height. Several lines step by the leading.
+        var y = (lines.length === 1)
+          ? top + box.height / 2
+          : top + leading * (i + 0.5);
+        drawLine(ctx, lines[i], left, y, tracking);
+      }
+      drewSomething = true;
     }
-    return canvas;
+
+    return drewSomething ? canvas : null;
   }
 
   function init(root) {
-    var heading = root.querySelector(".landing-title");
-    if (!heading) return;
+    var targets = Array.prototype.slice.call(root.querySelectorAll("[data-warp]"));
+    if (!targets.length) return;
 
-    // Captured once, while the heading still has its own colour.
-    var ink = window.getComputedStyle(heading).color || "#000";
+    // Ink colours are captured once, now, while every element still has
+    // its own. rasteriseAll() draws the very elements that upload()
+    // then makes transparent, so reading colour at draw time would make
+    // the second pass -- a resize, or fonts.ready firing -- paint the
+    // text in transparent ink and blank the canvas.
+    var inks = targets.map(function (el) {
+      return window.getComputedStyle(el).color || "#000";
+    });
 
     var canvas = document.createElement("canvas");
     var gl = null;
@@ -384,16 +409,18 @@
       // ResizeObserver calls back the moment the box gains dimensions.
       if (rect.width <= 0 || rect.height <= 0) return;
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      var img = rasterise(heading, root, rect.width, rect.height, dpr, ink);
+      var img = rasteriseAll(targets, root, rect.width, rect.height, dpr, inks);
       if (!img) return;
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
       draw();
 
-      // The canvas is now carrying the heading, so the DOM copy can
-      // step back. It keeps its box and its place in the accessibility
-      // tree -- only its ink goes.
-      heading.classList.add("is-warped");
+      // The canvas is now carrying the text, so the DOM copies can step
+      // back. They keep their boxes, their links and their place in the
+      // accessibility tree -- only their ink goes.
+      for (var i = 0; i < targets.length; i++) {
+        targets[i].classList.add("is-warped");
+      }
     }
 
     function resize() {
@@ -462,7 +489,9 @@
       e.preventDefault();
       lost = true;
       pause();
-      heading.classList.remove("is-warped");
+      for (var i = 0; i < targets.length; i++) {
+        targets[i].classList.remove("is-warped");
+      }
       canvas.style.display = "none";
     }, false);
 
@@ -503,7 +532,10 @@
   }
 
   function boot() {
-    var root = document.getElementById("landing");
+    // The canvas covers the whole landing page, not just the <main>:
+    // the footer links live outside it and are warped too.
+    var root = document.querySelector(".landing-body")
+            || document.getElementById("landing");
     if (root) init(root);
   }
 

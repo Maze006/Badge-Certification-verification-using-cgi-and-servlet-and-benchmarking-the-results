@@ -11,18 +11,20 @@
 <main class="landing" id="landing" role="button" tabindex="0"
       aria-label="Enter the portal">
 
-  <h1 class="landing-title">skill&#8209;badge<br>verification<br>portal</h1>
+  <h1 class="landing-title" data-warp>skill&#8209;badge<br>verification<br>portal</h1>
 
-  <p class="landing-cue" aria-hidden="true">tap anywhere to begin</p>
+  <p class="landing-cue" data-warp aria-hidden="true">tap anywhere to begin</p>
 
 </main>
 
-<script src="js/warp-text.js" defer></script>
-
+<!-- data-warp marks the text js/warp-text.js draws through WebGL. The
+     elements stay in the DOM with their boxes, their links and their
+     place in the accessibility tree; only their ink moves to the
+     canvas, and only once the canvas is proven to be drawing. -->
 <footer class="landing-foot">
-  <a href="verify.html">verify a badge</a>
-  <span aria-hidden="true">&middot;</span>
-  <a href="benchmark.html">cgi vs servlet benchmark</a>
+  <a href="verify.html" data-warp>verify a badge</a>
+  <span aria-hidden="true" data-warp>&middot;</span>
+  <a href="benchmark.html" data-warp>cgi vs servlet benchmark</a>
 </footer>
 
 <script>
@@ -48,13 +50,23 @@
     setTimeout(function () { location.href = target; }, 460);
   }
 
-  // "Tap anywhere" must not mean "swallow the footer links".
-  // closest() only exists on Elements, so guard before calling it --
-  // a click whose target is not an Element would otherwise throw and
-  // silently stop the handler.
+  // "Tap anywhere" must not mean "swallow the footer".
+  //
+  // The exemption covers the whole footer, not just its anchors. Those
+  // links are small, they sit inside the tap-anywhere region, and the
+  // warp shifts their painted glyphs a few pixels off the box that
+  // actually receives the click -- so a near-miss would quietly take
+  // someone to the role page instead of where they aimed. Treating the
+  // footer as a deliberate control strip makes the miss do nothing,
+  // which is the better failure.
+  //
+  // closest() exists only on Elements, so guard before calling it: a
+  // click whose target is not an Element would otherwise throw and
+  // silently kill the handler.
   document.addEventListener("click", function (e) {
     var t = e.target;
-    if (t && typeof t.closest === "function" && t.closest("a")) { return; }
+    if (t && typeof t.closest === "function"
+          && t.closest("a, .landing-foot")) { return; }
     begin();
   });
 
@@ -77,5 +89,7 @@
   });
 })();
 </script>
+
+<script src="js/warp-text.js" defer></script>
 </body>
 </html>

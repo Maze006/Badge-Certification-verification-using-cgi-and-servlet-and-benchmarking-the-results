@@ -625,12 +625,16 @@ dl.facts dd.mono { font-size: 13px; }
   color: var(--black);
 }
 
-/* The WebGL canvas sits exactly over the landing area and draws the
-   heading itself. The real <h1> keeps its place in the layout and in
-   the accessibility tree -- it is only made transparent, never hidden,
-   and only once the canvas is genuinely drawing. If WebGL is missing
-   or the context is lost, is-warped comes off and the text is simply
-   there. See js/warp-text.js. */
+/* The WebGL canvas covers the whole landing page -- heading, cue and
+   footer links alike -- and draws all of their text through one piece
+   of glass, so they bend together rather than separately.
+
+   Every [data-warp] element keeps its place in the layout, keeps its
+   link, and keeps its place in the accessibility tree. It is only made
+   transparent, never hidden, and only once the canvas is genuinely
+   drawing. If WebGL is missing or the context is lost, is-warped comes
+   off and the text is simply there. See js/warp-text.js. */
+.landing-body { position: relative; }
 .landing { position: relative; }
 
 .warp-canvas {
@@ -643,11 +647,17 @@ dl.facts dd.mono { font-size: 13px; }
   z-index: 1;
 }
 
-.landing-title.is-warped {
-  color: transparent;
-}
+[data-warp].is-warped { color: transparent; }
 
+/* The links stay above the canvas so they remain clickable, and their
+   underline is drawn in its own colour so it survives the text going
+   transparent. The hover colour must NOT come back, though: it would
+   paint the crisp DOM text straight over the warped copy. The border
+   still darkens, so hovering still gives feedback. */
 .landing-cue, .landing-foot { position: relative; z-index: 2; }
+
+.landing-foot a.is-warped:hover,
+.landing-foot a.is-warped:focus-visible { color: transparent; }
 
 .landing-cue {
   font-family: var(--sans);
