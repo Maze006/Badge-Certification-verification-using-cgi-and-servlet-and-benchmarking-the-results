@@ -59,6 +59,7 @@ web tech project/
 │       ├── role.html                   admin / student role selection
 │       ├── benchmark.html              the CGI vs servlet comparison
 │       ├── css/style.css              the whole visual system
+│       ├── js/warp-text.js            WebGL headline, vanilla port
 │       └── WEB-INF/web.xml            explicit servlet mappings
 │
 ├── cgi/

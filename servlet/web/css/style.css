@@ -625,6 +625,30 @@ dl.facts dd.mono { font-size: 13px; }
   color: var(--black);
 }
 
+/* The WebGL canvas sits exactly over the landing area and draws the
+   heading itself. The real <h1> keeps its place in the layout and in
+   the accessibility tree -- it is only made transparent, never hidden,
+   and only once the canvas is genuinely drawing. If WebGL is missing
+   or the context is lost, is-warped comes off and the text is simply
+   there. See js/warp-text.js. */
+.landing { position: relative; }
+
+.warp-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;   /* tap-anywhere must still reach the document */
+  z-index: 1;
+}
+
+.landing-title.is-warped {
+  color: transparent;
+}
+
+.landing-cue, .landing-foot { position: relative; z-index: 2; }
+
 .landing-cue {
   font-family: var(--sans);
   font-size: clamp(0.85rem, 1.5vw, 1.05rem);
